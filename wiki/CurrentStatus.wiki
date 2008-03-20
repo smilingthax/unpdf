@@ -1,0 +1,74 @@
+#summary Current State of the Project and ToDo
+#labels Phase-Design,Featured
+
+The library can currently read most in-the-wild PDFs.
+  * it lacks support for Xref-streams and object-streams
+  * `sel/pdfselect` is a simple example that extracts pages from pdf files
+     (might produce invalid pdf's when used with AES-encrypted files...)
+  * `rletest/rletest` comes very handy for testing the various filters
+
+===Library dependencies:===
+  * openssl
+    for AES, RC4, MD5 and RAND. Can be easily replaced [...license], see `pdfcrypt.h`.
+  * zlib
+  * jpeg
+  * g4coder/lzwcoder (included)
+
+===Documentation:===
+  * this page :-)
+  * source code (sorry, no comments there; but quite readable)
+    (you might want to use vim with foldmethod=marker)
+  * Adobe's PDF-Reference
+
+===The goals of the library are:===
+  * low-level mapping of pdf-Objects to C++-Objects, but not necessarily one-to-one
+    It is more important to have a well thought about interface than functionality.
+  * reading and writing of pdf-files
+  * speed
+    If you just want a PDF-Output for your Application, this is not the right
+    choice. "printf()-based" PDF-generation will be a lot faster for you, 
+    and there are already numerous libraries doing exactly that.
+  * No unexpected errors, especially no Segmentation faults
+    Better one `assert()` slightly too strict (and then thinking again when it triggers)
+    than assuming that code will do the right thing
+
+===Future:===
+  * The library does currently work for my purposes, so I probably won't spend much time coding on it in the next months
+  * Some parts are quite usable, while others are virtually non-existent
+
+So if this library does make sense to you, you are welcome to join the project.
+
+I will help at serious questions (meaning: you have read the source code) where documentation is lacking.
+
+I'm also interested in ideas, discussions and contributions leading to good API design.
+
+*But actually implementing the stuff is up to you.*
+
+
+===Possible next steps:===
+  * come up with some general principles, on how to treat the read path (PDF) and the write path (OutPDF) -- meaning: 
+    what should be unified, and what should be kept separate.
+  * implement the remaining `/Filter`
+    * JBIG2 (using jbig2dec / jbig2enc)
+      (if you have too much time: reimplement jbig2enc in vanilla C and 
+      submit the code for inclusion in leptonlib)
+    * JPX
+    * Crypt
+  * `class Image`
+    * some initial fragments are in `rletest/main.c`
+    * you might first think about some use-cases and a sensible interface before you design the internal class structure
+  * rethink the error-handling: all these `throw UsrError("xy is not right")`
+  * fix throws through C code
+    some Filters use output callbacks (e.g. `writefunc_Output` in `pdffilter.cpp`); when an exception is thrown there, it will not correctly pass thru the C library code, so this has to be fixed, probably catched and newly thrown when reentereing C++ code (if we want to preserve the error text)
+  * Documentation, e.g. doxygen
+  * Fonts
+    one should probably make a stand-alone(no freetype/t1lib dependency, MIT license?)
+    C library, possibly including a decent C++ wrapper, that can be used in _any_ 
+    Application where Font-embedding and -subsetting generating PS or PDF. 
+    This could be of great benefit for other Open Source Software.
+  * "the other stuff": 
+    * autoconf (?)
+    * automated Unit- and Conformance-testing
+    * Homepage, "marketing", attract developers, packaging for distros
+    * make handy tools: pdfselect, pdf... [ see ps...]
+    * build a pdf viewer or pdf editor based on this library :-)
