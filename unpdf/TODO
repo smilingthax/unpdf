@@ -1,0 +1,24 @@
+getTake -> _move_from ????
+
+ColorSpace  ,  Image  Image::fromPNG ::from...
+
+generate_id
+Ref StandardSecurityHandler::print(OutPDF &outpdf) for /Encrypt
+
+errata:--- crypt: do not apply 3.1 (key-generation from object key), when in /Crypt -Filter -- and these shall be "first"
+
+OutPDF::copy_from(...) ... "remap" InStream to OutStream
+
+Encrypt ... OutPDF (add StandardSecurityHandler)
+
+
+OutPDF::replace_obj(const Ref &ref,const Object *obj)
+---
+pdfbase
+pdffilter : // later: png(decode: impl predictors, encode with libpng(?)) jpeg(libjpeg)
+
+- simple tool to extract the image on a certain page
+- another lib, that scales(!) a pbm (from g4coder) to a pgm suitable for libpng. (different resolutions, fast [later: + high quality])
+
+/* - one lib that makes cgi-programming simple? [Think about >state, >templates, combinability with php] */
+do: simple commandline tool; passthru() in php;
