@@ -1,0 +1,6 @@
+throws in jpeg reader / read_func have to be catched (pdffilter.cpp)
+tiff_predict: optimize; out-of-place might also give a speed boost (test it)
+
+
+
+png to jpeg copy tool
