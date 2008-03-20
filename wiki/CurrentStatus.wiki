@@ -16,8 +16,9 @@ The library can currently read most in-the-wild PDFs.
 
 ===Documentation:===
   * this page :-)
-  * source code (sorry, no comments there; but quite readable)
-    (you might want to use vim with foldmethod=marker)
+  * source code (sorry, only few comments there; but quite readable)
+    have a look at [CodingConventions], you also
+    might want to use vim with `foldmethod=marker`
   * Adobe's PDF-Reference
 
 ===The goals of the library are:===
