@@ -1,4 +1,4 @@
-The following notes might help understand the source code:
+The following notes might help to understand the source code:
 
 In comments '>var' is used to reference a variable name.
 
