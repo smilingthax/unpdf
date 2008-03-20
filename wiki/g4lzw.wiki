@@ -1,0 +1,25 @@
+#summary The g4coder / lzwcoder libraries.
+
+You can checkout these libraries separately using:
+
+`svn checkout http://unpdf.googlecode.com/svn/trunk/g4coder g4coder`
+
+resp.
+
+`svn checkout http://unpdf.googlecode.com/svn/trunk/lzwcoder lzwcoder`
+
+(the lzwcoder repository currently contains a symbolic link to the
+files `gfxfiles.c`/`gfxfiles.h` from g4coder. If you want only lzwcoder
+you have to get them separately from g4coder...)
+
+The libs also include a small command-line utility to for en-/decoding.
+For usage see
+
+`g4coder --help`
+
+resp.
+
+`lzwcoder --help`
+
+
+Have a look at `g4coder/g4code.h` for the C API, even when only using lzwcoder.
