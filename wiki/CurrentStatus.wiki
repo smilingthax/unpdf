@@ -44,6 +44,7 @@ I'm also interested in ideas, discussions and contributions leading to good API 
 
 *But actually implementing the stuff is up to you.*
 
+My Email: smilingthax googlemail.com
 
 ===Possible next steps:===
   * come up with some general principles, on how to treat the read path (PDF) and the write path (OutPDF) -- meaning: 
