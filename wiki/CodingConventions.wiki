@@ -1,0 +1,56 @@
+The following notes might help understand the source code:
+
+In comments '>var' is used to reference a variable name.
+
+Unless explicitly stated otherwise, assume the following:
+{{{
+// caller is responsible for deleting the Object
+Object *function() 
+{
+  // something like 
+  return new Object(...);
+}
+
+// probably not to be deleted by caller, and NULL
+// is used as special return value
+const Object *function()
+
+// caller has to think about the Objects lifetime
+// (which is probably tied to some >context)
+Object &function(... &context)
+
+// callee will take ownership/delete the Object
+void function(Object *obj)
+
+// callee will not take ownership, but NULL has
+// probably a special meaning
+void function(const Object *obj)
+}}}
+
+Indentation should be obvious from the source, but here a few examples:
+{{{
+class Xy {
+public:
+  void xy();
+};
+
+void foo()
+{
+  for (int iA=0;iA<10;iA++) {
+    if (x(iA)) {
+      statement1();
+      statement2();
+    } else {
+      break;
+    }
+  }
+  if ( (cond1)&&(cond2) ) {
+  }
+  // the spacing between the braces indicates the nesting level
+  if (  ( (cond1)||(cond2) )&&
+        ( (cond3)||(cond4) )&&(cond5)  ) {
+    something();
+  }
+}
+}}}
+ 
