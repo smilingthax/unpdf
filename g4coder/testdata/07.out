@@ -1,0 +1,57 @@
+TIFF Directory at offset 0x10 (16)
+  Image Width: 8 Image Length: 3
+  Bits/Sample: 1
+  Compression Scheme: CCITT Group 4
+  Photometric Interpretation: min-is-white
+  FillOrder: msb-to-lsb
+  Orientation: row 0 top, col 0 lhs
+  Samples/Pixel: 1
+  Rows/Strip: 8192
+  Planar Configuration: single image plane
+  DocumentName: 07.pbm
+  ImageDescription: converted PNM file
+Strip 0:
+  23 f6 4c 71 80 08 00 80
+0010001111110110010011000111000110000000000010000000000010000000
+Hw 1     2 V
+1,3,8,
+            VR1Hb 5   1     
+2,7,8,
+                            P   V
+8,
+                                 EOL         EOL         
+
+
+P1
+8 3
+01100000
+00111110
+00000000
+decode:
+01100000
+00111110
+00000000
+
+
+----- 1,3,8,
+§0§-1,
+8 - 7
+Hw1,2 §3§-1,
+8 - 0
+V 
+----- 2,7,8,
+§0§-1,1,3,8,
+1 - -1
+VR1 §2§1,3,8,
+3 - -4
+Hb5,1 
+----- 8,
+§0§-1,2,7,8,
+2 - -6
+P §7§7,8,
+8 - 0
+V 
+EOL EOL
+001000111111011001001100011100011000000000001000000000001
+0010001111110110010011000111000110000000000010000000000010000000
+00000000000100011111110000000000000101110011000111000000000001100110000000000010000000000010000000000010000000000010000000000010000000000010000000000010

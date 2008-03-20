@@ -1,0 +1,23 @@
+PDF: (default)
+  want EOL EOL, resp. EOL(1?)x6
+  do NOT need EOL after each line!!!
+optionally allow 0 bits to align with byte boundary at line start. (check this)
+  might allow resync to EOL for K>=0 (then: requires EOL after each line)
+  
+FOR US: check how to deal with reads 1 byte more
+
+
+libtiff: 
+  does not write RTC (6xEOL(1?)) in G3. (no EOL at end of file)
+
+FOR US: to implement this we need to allow (*read) to return some kind of EOF
+
+
+TIFF 6.0 Spec:
+  never write EOL in G3 1d, (i.e. also no RTC)
+  Strips are independent images
+
+want?
+ - pbm reader/writer (P1,P4)
+... may want: 
+ - simple tiff reader/writer
