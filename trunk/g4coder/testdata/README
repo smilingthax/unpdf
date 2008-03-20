@@ -1,0 +1,5 @@
+These are the testcases used.
+./gen.sh   will encode the pbm images to g3/g4 using libtiff,
+           the prototype coder.pl and the our library and 
+           output the results for comparison in the .out files
+           [works only for g4 correctly]
