@@ -482,7 +482,7 @@ int encode_g4(G4STATE *state,const unsigned char *inbuf)
   if ( (!state)||(!state->write) ) {
     return -ERR_INVALID_ARGUMENT;
   }
-  if (!inbuf) {
+  if (!inbuf) { // flush
     if (state->kval==-1) { // G4: EOL EOL
       if ((ret=writecode(state,opcode,-EOL))) {
         return -ERR_WRITE;
