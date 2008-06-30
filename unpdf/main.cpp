@@ -79,7 +79,6 @@ auto_ptr<Object> robj;
       // TODO: autoresolve Ref's
       // TODO: make /Type first in Dict::print
 
-   // TODO: escape ) in String::print()
 // TODO: in Input / Output base provide pos()...return -1; remove all other impls.
 
       // TODO?? add reference to XRef into Ref. [good for writing PDFs!];  maybe even count them(?) [usage]
