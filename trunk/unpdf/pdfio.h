@@ -12,7 +12,7 @@ namespace PDFTools {
     Input() {}
     virtual ~Input() {}
 
-    virtual int read(char *buf,int len)=0; // >=0
+    virtual int read(char *buf,int len)=0; // ret >=0
     virtual std::string gets(int len);
     virtual long pos() const=0;
     virtual void pos(long pos)=0; // pos(0): "reset"

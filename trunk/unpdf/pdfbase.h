@@ -206,7 +206,7 @@ namespace PDFTools {
     int getInt(PDF &pdf,const char *key,int defval) const;
     float getNum(PDF &pdf,const char *key,float defval) const; // int or float
     bool getBool(PDF &pdf,const char *key,bool defval) const;
-    int getNames(PDF &pdf,const char *key,const char *name0,const char *name1,.../*name1,...,NULL*/) const; // default: 0, throws if (name0==0) or bad name
+    int getNames(PDF &pdf,const char *key,const char *name0,const char *name1,.../*name1,...,NULL*/) const; // if not found: default=0, or throws if (name0==0); always throws on bad name
 
     std::string getString(PDF &pdf,const char *key) const;
     // when found: ensures direct ... 

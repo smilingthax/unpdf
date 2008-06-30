@@ -214,8 +214,24 @@ void PDFTools::String::print(Output &out) const
     out.put('>');
   } else {
     out.put('(');
-// TODO: escape ')' !!!
-    out.write(val.data(),val.size()); // TODO? maybe wrap line after...
+    // escape special chars: \0 \\ \)
+    const char *buf=val.data();
+    int iA=0;
+    for (int iB=0;iB<(int)val.size();iA++,iB++) {
+      if ( (buf[iA]==0)||(buf[iA]==')')||(buf[iA]=='\\') ) {
+        out.write(buf,iA);
+        if (buf[iA]==0) {
+          out.write("\\000",4);
+        } else {
+          out.put('\\');
+          out.put(buf[iA]);
+        }
+        buf+=iA+1;
+        iA=-1;
+      }
+    }
+    out.write(buf,iA);
+//    out.write(val.data(),val.size()); // TODO? maybe wrap line after...
     out.put(')');
   }
 }

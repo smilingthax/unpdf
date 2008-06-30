@@ -164,7 +164,7 @@ namespace PDFTools {
     PDF(Input &read_base,int version,int xrefpos);
     ~PDF();
 
-    ObjectPtr fetch(const Object *obj); // throws if NULL!
+    ObjectPtr fetch(const Object *obj); // throws if NULL!; if >obj a reference: fetch, otherwise return ObjectPtr(obj,false) TODO? bad const_cast
     Object *fetch(const Ref &ref); // resolve all References
     Object *fetchP(const Ref &ref) const; // resolve ..., and restore Input position
     Object *getObject(const Ref &ref); // none: Null-object
