@@ -142,11 +142,34 @@ protected:
 };
 // }}}
 
-// TODO? -root (single dash)
+static bool printable_stream(PDF &pdf,InStream &stm) { // {{{ - if stream content should be printed by default
+  try {
+    const Dict &dict=stm.getDict();
+    string stype=dict.getString(pdf,"Type");
+    if (stype=="XObject") {
+      string subtype=dict.getString(pdf,"Type");
+      if (subtype=="Image") {
+        return false;
+      }
+    }
+  } catch (...) {
+  }
+  InputPtr in=stm.open(false);
+  if (in.empty()) {
+    return true;
+  }
+  char buf[256];
+  int len=in.read(buf,256);
+  for (int iA=0;iA<len;iA++) {
+    if (!isprint(buf[iA])) {
+      return false;
+    }
+  }
+  return true;
+}
+// }}}
 
 // TODO: format:  raw(dict+data)/compressed binary  vs. PNG/JPEG/G4(/ZLIB)  vs.  PPM/PBM/TEXT(uncompressed)
-         // some streams should be output (page contents) as clear.
-         // images should not be output to console [/Type /XObject /SubType /Image ??]
 // TODO: common crypt
 // TODO: -o [file] ->fo /replace dump. maybe replace auto_ptr<Object> by ObjectPtr
 
@@ -212,30 +235,45 @@ int main(int argc,char **argv)
       robj.reset(pdf->fetch(cmdl.mode_ref));
     }
 
+    OutputPtr fo(stdfo);
+    if (!cmdl.outputfile.empty()) {
+      fo.reset(new FILEOutput(cmdl.outputfile.c_str()),true);
+    }
     // now output robj
-if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
-  // TODO: filter.open() -> reset
-  stmval->getDict().print(stdfo);
-  stmval->write(NULL);
-} else
-    dump(robj.get());
-
-/*
-if (argc==3) {
-  robj.reset(pdf->fetch(Ref(atoi(argv[2]),0)));
-} else 
-  robj.reset(pdf->fetch(Ref(4,0)));
-      assert(robj.get());
-
-      InStream *stmval=dynamic_cast<InStream *>(robj.get());
-   // TODO: filter.open() -> reset
-if (stmval) {
-  stmval->getDict().print(stdfo);
-  stmval->write(NULL);
-} else
-  dump(robj.get());
-*/
-  
+    if (cmdl.format==PG_Cmdline::FORMAT_RAW) {
+      if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
+        stmval->getDict().print(stdfo);
+        InputPtr in=stmval->open(true); // TODO: false
+        copy(fo,in);
+      } else {
+        if (!robj.get()) {
+          stdfo.printf("NULL");
+        } else {
+          robj->print(fo);
+        }
+        stdfo.put('\n');
+      }
+    // TODO: FORMAT_COMPRESSED   ... decrypted but nothing more...
+    } else if (cmdl.format==PG_Cmdline::FORMAT_IMAGE) {
+      printf("TODO: NOT IMPLEMENTED\n");
+    } else { // FORMAT_DEFAULT
+      if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
+        stmval->getDict().print(stdfo);
+        if ( (!cmdl.outputfile.empty())||
+             (printable_stream(*pdf,*stmval)) ) {
+          InputPtr in=stmval->open(false);
+          copy(fo,in);
+        }
+      } else {
+        if (!robj.get()) {
+          stdfo.printf("NULL");
+        } else {
+          robj->print(fo);
+        }
+      }
+      stdfo.put('\n');
+    }
+    fo.flush();
   } catch (exception &ex) {
     printf("Ex: %s\n",ex.what());
   }

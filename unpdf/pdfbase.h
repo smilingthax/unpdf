@@ -268,18 +268,21 @@ namespace PDFTools {
     static long readUIntOnly(const char *buf,int len);
   private:
     struct xre_t {
-      xre_t() : type(XREF_FREE),off(0),gen(-1) {}
-      xre_t(long pos) : type(XREF_USED),off(pos),gen(0) {}
+      xre_t() : type(XREF_FREE),off(0),gen(-1),end(-1) {}
+      xre_t(long pos) : type(XREF_USED),off(pos),gen(0),end(-1) {}
       enum { XREF_FREE, XREF_USED } type; // see also XRef::print
       long off;
       int gen;
+      long end; // internally for getEnd
     };
     typedef std::vector<xre_t> XRefVec;
     XRefVec xref;
-    int xrefpos;
+    std::vector<int> xrefpos;
     // ... XRefMap xref_update; bool update_mode;
   protected:
     bool read_xref(ParsingInput &fi,XRefVec &to);
+    struct offset_sort;
+    void generate_ends();
   };
 
   bool isnull(const Object *obj);
