@@ -842,18 +842,18 @@ ObjectPtr PDFTools::Dict::const_iterator::get(PDF &pdf) const
 PDFTools::XRef::XRef(bool writeable)
 {
   if (writeable) {
-    xrefpos=-2;
+    // xrefpos.empty();
     // first empty entry
     xref.push_back(xre_t());
     xref.front().gen=65535;
   } else {
-    xrefpos=-1;
+    xrefpos.push_back(-1);
   }
 }
 
 Ref PDFTools::XRef::newRef(long pos)
 {
-  assert(xrefpos==-2); // create-mode
+  assert(xrefpos.empty()); // create-mode
   Ref ret(xref.size());
   xref.push_back(xre_t(pos));
   return ret;
@@ -861,7 +861,7 @@ Ref PDFTools::XRef::newRef(long pos)
 
 void PDFTools::XRef::setRef(const Ref &ref,long pos)
 {
-  assert(xrefpos==-2); // create-mode
+  assert(xrefpos.empty()); // create-mode
   if ( (ref.ref<0)||(ref.ref>=(int)xref.size()) ) {
     throw UsrError("Bad reference");
   }
@@ -874,19 +874,24 @@ void PDFTools::XRef::setRef(const Ref &ref,long pos)
 
 void PDFTools::XRef::clear() 
 {
-  assert(xrefpos==-2); // create-mode
+  assert(xrefpos.empty()); // create-mode
   xref.clear();
 }
 
 bool PDFTools::XRef::parse(ParsingInput &pi)
 {
-  assert(xrefpos!=-2); // non-create-mode
+  assert(!xrefpos.empty()); // non-create-mode
   // .. if a as_stream - TODO
   long xrp=pi.pos();
   bool ret=read_xref(pi,xref);
-  if ( (ret)&&(xrefpos==-1) ) { // store only most recent xrefpos
-    xrefpos=xrp;
+  if (ret) {
+    if (xrefpos[0]==-1) {
+      xrefpos[0]=xrp;
+    } else {
+      xrefpos.push_back(xrp);
+    }
   }
+  generate_ends(); // TODO? optimize/ only once
   return ret;
 }
 
@@ -904,7 +909,7 @@ bool PDFTools::XRef::read_xref(ParsingInput &fi,XRefVec &to) // {{{
     fi.skip();
     for (int iA=0;iA<len;iA++) {
       // "%010u %05d %c[\r\n][\r\n]"
-       char buf[20];
+      char buf[20];
       if (fi.read(buf,20)!=20) {
         return false;
       }
@@ -934,6 +939,44 @@ bool PDFTools::XRef::read_xref(ParsingInput &fi,XRefVec &to) // {{{
   return true;
 }
 // }}}
+
+struct PDFTools::XRef::offset_sort { // {{{ [id] -> sort by [xref[id].off]
+  offset_sort(const XRefVec &xref,const vector<int> &xrefpos)
+             : xref(xref),xrefpos(xrefpos) {}
+  bool operator()(int a, int b) const {
+    if ( (a<0)&&(b<0) ) {
+      return (xrefpos[~a]<xrefpos[~b]);
+    } else if (a<0) {
+      return (xrefpos[~a]<xref[b].off);
+    } else if (b<0) {
+      return (xref[a].off<xrefpos[~b]);
+    }
+    return (xref[a].off<xref[b].off);
+  }
+  const XRefVec &xref;
+  const vector<int> &xrefpos;
+};
+// }}}
+
+void PDFTools::XRef::generate_ends()
+{
+  vector<int> offset_keyed(xref.size()+xrefpos.size());
+
+  for (int iA=0,val=-(int)xrefpos.size();iA<(int)offset_keyed.size();iA++,val++) {
+    offset_keyed[iA]=val;
+  }
+  sort(offset_keyed.begin(),offset_keyed.end(),offset_sort(xref,xrefpos));
+
+  int lastpos=-1;
+  for (int iA=(int)offset_keyed.size()-1;iA>=0;iA--) {
+    if (offset_keyed[iA]<0) {
+      lastpos=xrefpos[~offset_keyed[iA]];
+    } else {
+      xref[offset_keyed[iA]].end=lastpos;
+      lastpos=xref[offset_keyed[iA]].off;
+    }
+  }
+}
 
 long PDFTools::XRef::readUIntOnly(const char *buf,int len)
 {
@@ -992,19 +1035,7 @@ long PDFTools::XRef::getEnd(const Ref &ref) const
   if ( (xref[ref.ref].type==xre_t::XREF_FREE)||(xref[ref.ref].gen!=ref.gen) ) {
     return -1; // not there/ wrong generation -> unknown
   }
-  // TODO? optimize
-  long ret=xrefpos;
-  if (xrefpos<xref[ref.ref].off) { // may be too earlier (linearized PDF); TODO: all xrefs 
-    ret=-1;
-  }
-  for (int iA=0;iA<(int)xref.size();iA++) {
-    if ( (xref[iA].type!=xre_t::XREF_FREE)&&(xref[iA].off>xref[ref.ref].off) ) {
-      if ( (ret==-1)||(xref[iA].off<ret) ) {
-        ret=xref[iA].off;
-      }
-    }
-  }
-  return ret; // -1 on not_specified
+  return xref[ref.ref].end;
 }
 // }}}
 
