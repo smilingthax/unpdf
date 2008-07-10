@@ -97,7 +97,7 @@ public:
       mode=MODE_HIDE;
     }
     if (force) {
-      mode&=FORCE_AND;
+      mode=(typeof(mode))(mode&FORCE_AND); // bad...
     }
     // honour --delta "" resp. --copy "" (in not modifying source)
     if (!deltavec.empty()) {
@@ -179,6 +179,7 @@ int main(int argc,char **argv)
   PP_Cmdline cmdl;
 
   try {
+    fprintf(stderr,"\nThis tool DOES NOT WORK yet.\n\n");
     if (!cmdl.parse(argc,argv)) {
       return 1;
     }

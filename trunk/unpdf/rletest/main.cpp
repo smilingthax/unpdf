@@ -276,12 +276,7 @@ int main(int argc, char **argv)
   }
   try {
     FILEInput fi(fns[0]);
-FILEOutput sfo(stdout);
-auto_ptr<FILEOutput> ffo;
-if (fns.size()==2) {
-  ffo.reset(new FILEOutput(fns[1]));
-}
-    FILEOutput &fo=(ffo.get())?*ffo:sfo;
+    FILEOutput fo(fns.size()==2?fns[1]:NULL,stdout);
 
     if (decode==-1) { // make pdf
       OutPDF outpdf(fo);

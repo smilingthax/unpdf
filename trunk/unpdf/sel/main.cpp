@@ -34,8 +34,8 @@ void do_it(PDF &pdf,int page,int pno) // {{{ stdout the images from >page to >pa
 
 int main(int argc, char **argv)
 {
-  if (argc!=4) {
-    fprintf(stderr,"Usage: %s file page len\n",argv[0]);
+  if ( (argc<4)||(argc>5) ) {
+    fprintf(stderr,"Usage: %s file startpage len [outfile]\n",argv[0]);
     return 1;
   }
   try {
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
     int page=atoi(argv[2])-1,pno=atoi(argv[3]);
 //    do_it(*pdf,atoi(argv[2])-1,atoi(argv[3]));
 
-    FILEOutput fo(stdout);
+    FILEOutput fo((argc==5)?argv[4]:NULL,stdout); // outfile given?
     OutPDF outpdf(fo);
     map<Ref,Ref> donemap;
     for (int iA=0;iA<pno;iA++) {

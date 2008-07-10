@@ -177,6 +177,7 @@ namespace PDFTools {
   public: 
     FILEOutput(FILE *f);
     FILEOutput(const char *filename);
+    FILEOutput(const char *filename,FILE *_f); // e.g. (fn/NULL,stdout)
     ~FILEOutput();
 
     void vprintf(const char *fmt,va_list ap);
