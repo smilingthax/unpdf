@@ -301,6 +301,8 @@ void PDFTools::InflateInput::pos(long pos)
   if (pos!=0) {
     throw invalid_argument("Reposition in Inflate is not supported");
   }
+  zstr.avail_in=0;
+  zstr.avail_out=0;
   int err=inflateReset(&zstr);
   if (err!=Z_OK) {
     throw UsrError("Error: inflateReset failed: %s",zstr.msg);
