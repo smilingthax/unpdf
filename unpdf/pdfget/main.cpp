@@ -235,10 +235,7 @@ int main(int argc,char **argv)
       robj.reset(pdf->fetch(cmdl.mode_ref));
     }
 
-    OutputPtr fo(stdfo);
-    if (!cmdl.outputfile.empty()) {
-      fo.reset(new FILEOutput(cmdl.outputfile.c_str()),true);
-    }
+    FILEOutput fo(!cmdl.outputfile.empty()?cmdl.outputfile.c_str():NULL,stdout);
     // now output robj
     if (cmdl.format==PG_Cmdline::FORMAT_RAW) {
       if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {

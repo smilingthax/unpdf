@@ -176,6 +176,22 @@ PDFTools::FILEOutput::FILEOutput(const char *filename) : sumout(0)
   ourclose=true;
 }
 
+// simplify  output to file, or stdout if ==NULL  case
+PDFTools::FILEOutput::FILEOutput(const char *filename,FILE *_f) : sumout(0)
+{
+  if (filename) { // takes precedence
+    if ((f=fopen(filename,"w"))==NULL) {
+      throw FS_except(errno);
+    }
+    ourclose=true;
+  } else if (_f) {
+    f=_f;
+    ourclose=false;
+  } else { // !filename && !_f
+    throw invalid_argument("NULL pointer");
+  }
+}
+
 PDFTools::FILEOutput::~FILEOutput()
 {
   if (ourclose) {

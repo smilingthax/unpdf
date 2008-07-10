@@ -1,3 +1,5 @@
+prettify output of <<>> etc
+OutPDF shall not take (FILEOutput &fo), but s.th. like SummingOutput(...) 
 getTake -> _move_from ????
 
 ColorSpace  ,  Image  Image::fromPNG ::from...
