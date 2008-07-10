@@ -230,7 +230,7 @@ namespace PDFTools {
     void unread(const char *buf,int len);
     bool next(const char c,int prebuffer=1);
     bool next(const char *str,int prebuffer=-1);
-    void skip(bool required=true);
+    void skip(bool required=true); // skip whitespace
 
     // convenience functions
     int readUInt();

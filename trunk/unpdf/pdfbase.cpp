@@ -967,11 +967,12 @@ void PDFTools::XRef::generate_ends()
   }
   sort(offset_keyed.begin(),offset_keyed.end(),offset_sort(xref,xrefpos));
 
+  // iterate the xref in desceding offset order
   int lastpos=-1;
   for (int iA=(int)offset_keyed.size()-1;iA>=0;iA--) {
     if (offset_keyed[iA]<0) {
       lastpos=xrefpos[~offset_keyed[iA]];
-    } else {
+    } else if (xref[offset_keyed[iA]].type==xre_t::XREF_USED) {
       xref[offset_keyed[iA]].end=lastpos;
       lastpos=xref[offset_keyed[iA]].off;
     }
