@@ -161,7 +161,7 @@ static bool printable_stream(PDF &pdf,InStream &stm) { // {{{ - if stream conten
   char buf[256];
   int len=in.read(buf,256);
   for (int iA=0;iA<len;iA++) {
-    if (!isprint(buf[iA])) {
+    if ( (!isprint(buf[iA]))&&(!isspace(buf[iA])) ) {
       return false;
     }
   }
@@ -256,6 +256,7 @@ int main(int argc,char **argv)
     } else { // FORMAT_DEFAULT
       if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
         stmval->getDict().print(stdfo);
+        stdfo.put('\n');
         if ( (!cmdl.outputfile.empty())||
              (printable_stream(*pdf,*stmval)) ) {
           InputPtr in=stmval->open(false);
