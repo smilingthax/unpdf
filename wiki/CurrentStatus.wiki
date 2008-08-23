@@ -6,6 +6,7 @@ The library can currently read most in-the-wild PDFs.
   * `sel/pdfselect` is a simple example that extracts pages from pdf files
      (might produce invalid pdf's when used with AES-encrypted files...)
   * `rletest/rletest` comes very handy for testing the various filters
+  * `pdfget/pdfget` is a command-line tool to extract single objects from a pdf
 
 ===Library dependencies:===
   * openssl
@@ -50,6 +51,7 @@ My Email: smilingthax googlemail.com
 ===Possible next steps:===
   * come up with some general principles, on how to treat the read path (PDF) and the write path (OutPDF) -- meaning: 
     what should be unified, and what should be kept separate.
+  * `pdfput` that complements `pdfget` (probably done together with the preceding point)
   * implement the remaining `/Filter`
     * JBIG2 (using jbig2dec / jbig2enc)
       (if you have too much time: reimplement jbig2enc in vanilla C and 
@@ -68,6 +70,8 @@ My Email: smilingthax googlemail.com
     C library, possibly including a decent C++ wrapper, that can be used in _any_ 
     Application where Font-embedding and -subsetting generating PS or PDF. 
     This could be of great benefit for other Open Source Software.
+    UPDATE: I've started one as part of my Google Summer of Code 2008 Project:
+    It's in the opfc svn: [http://svn.sourceforge.jp/cgi-bin/viewcvs.cgi/texttopdf/trunk/cups/filter/fontembed/?root=opfc fontembed]
   * "the other stuff": 
     * autoconf (?)
     * automated Unit- and Conformance-testing
