@@ -246,11 +246,10 @@ void rle_encode(int *line,const unsigned char *inbuf,int width)
 
 void rle_decode(const int *line,unsigned char *outbuf,int width)
 {
-  unsigned char rletab[8]={0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe};
+  static const unsigned char rletab[8]={0x00,0x80,0xc0,0xe0,0xf0,0xf8,0xfc,0xfe};
   int pos=0,black=0;
- 
-  // TODO? sanity checks: avoid overfill
-  *outbuf=0;
+
+  memset(outbuf,0,(width+7)/8);
   for (;*line<=width;line++) {
     while (*line>pos) {
       const int bitpos=pos&7;
@@ -258,7 +257,7 @@ void rle_decode(const int *line,unsigned char *outbuf,int width)
         if (black) {
           *outbuf|=0xff>>bitpos;
         }
-        *++outbuf=0; // TODO? will write at width+1!
+        outbuf++;
         pos+=8-bitpos;
       } else {
         if (black) {
@@ -371,6 +370,7 @@ int decode_line_2d(G4STATE *state)
         return -ERR_READ;
       } else if (ret<0) { // FILL,EOL,wrong_bigmakeup
         return -ERR_WRONG_CODE;
+// TODO: check ret==0
       }
       a0+=ret;
       *curpos++=a0;
@@ -381,6 +381,7 @@ int decode_line_2d(G4STATE *state)
         return -ERR_READ;
       } else if (ret<0) { // FILL,EOL,wrong_bigmakeup
         return -ERR_WRONG_CODE;
+// TODO: check ret==0
       }
       a0+=ret;
       *curpos++=a0;
@@ -418,6 +419,7 @@ int decode_line_2d(G4STATE *state)
   } while (a0<state->width);
 //  printf("%d\n",a0);
   assert(a0==state->width);
+  *curpos++=state->width+1;
   return 0;
 }
 
@@ -454,12 +456,15 @@ int decode_line_1d(G4STATE *state)
       return -ERR_READ;
     } else if (ret<0) { // namely: BIGMAKEUP-sequence wrong
       return -ERR_WRONG_CODE;
+    } else if ( (ret==0)&&(curpos!=state->curline) ) { // namely: futile rle encoding. might overflow buffers
+      return -ERR_WRONG_CODE;
     }
     a0+=ret;
     *curpos++=a0;
     black^=1;
   } while (a0<state->width);
   assert(a0==state->width);
+  *curpos++=state->width+1;
   return 0;
 }
 
