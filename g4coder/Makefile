@@ -1,7 +1,7 @@
 SOURCES=main.c g4code.c gfxfiles.c
 EXEC=g4coder
 
-CFLAGS=-O3 -march=pentium -funroll-all-loops -finline-functions -Wall
+CFLAGS=-O3 -funroll-all-loops -finline-functions -Wall
 
 OBJECTS=$(SOURCES:.c=.o)
 all: $(EXEC)
