@@ -441,7 +441,8 @@ void PDFTools::ParsingInput::unread(const char *buf,int len)
     prebuf.resize(len);
     prepos=0;
   }
-  memcpy(&prebuf[prepos],buf,len*sizeof(char));
+  // buf might point into prebuf, so stay safe
+  memmove(&prebuf[prepos],buf,len*sizeof(char));
 }
 
 int PDFTools::ParsingInput::pread(char *buf,int len)

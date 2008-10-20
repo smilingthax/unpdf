@@ -268,8 +268,8 @@ int main(int argc,char **argv)
         } else {
           robj->print(fo);
         }
+        stdfo.put('\n');
       }
-      stdfo.put('\n');
     }
     fo.flush();
   } catch (exception &ex) {
