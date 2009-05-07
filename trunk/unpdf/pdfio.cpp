@@ -639,6 +639,7 @@ void PDFTools::ParsingInput::skip_comment()
       return;
     }
     prebuf.resize(start+r,0);
+    prepos=start;
 #undef READSIZE
   }
 }

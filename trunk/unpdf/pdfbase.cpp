@@ -962,6 +962,8 @@ void PDFTools::XRef::generate_ends()
 {
   vector<int> offset_keyed(xref.size()+xrefpos.size());
 
+  // TRICK: all the xref-sections (usually only one), are handled with id <0  and taken care of at compare time
+  //        they are needed to terminate the last object(s)  [pdf with appended update]
   for (int iA=0,val=-(int)xrefpos.size();iA<(int)offset_keyed.size();iA++,val++) {
     offset_keyed[iA]=val;
   }
@@ -1202,6 +1204,10 @@ void PDFTools::PDF::read_xref_trailer(ParsingInput &pi) // {{{
   if (!xref.parse(pi)) {
     throw UsrError("Could not read xref");
   }
+
+  // reference says: "trailer precedes startxref" and not "trailer follows xref"; but even acrobat seems to do this one instead
+  pi.skip(false); // some pdfs require this
+
   if (!pi.next("trailer")) {
     throw UsrError("Could not read trailer");
   }
@@ -1237,7 +1243,7 @@ void PDFTools::PDF::read_xref_trailer(ParsingInput &pi) // {{{
     throw UsrError("/Size in trailer is not an Integer");
   }
   if (ival->value()!=(int)xref.size()) {
-    throw UsrError("Damaged trailer or xref");
+    throw UsrError("Damaged trailer or xref (size does not match)");
   }
 }
 // }}}
