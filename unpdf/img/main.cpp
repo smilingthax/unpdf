@@ -1,6 +1,7 @@
 #define JPEGLIB_H
 #include <leptonica/allheaders.h>
 #include <assert.h>
+#include <stdlib.h>
 #include "pdfbase.h"
 #include "pdfparse.h"
 #include "exception.h"
@@ -56,8 +57,10 @@ void PixOutput::write(const char *buf,int len)
       break;
     }
   }
-  if (len) {
-    throw UsrError("PixOutput overflow");
+  // TODO: what with one line too much? where does it come from?
+//  if (len) {
+  if (len>bwidth) {
+    throw UsrError("PixOutput overflow by %d",len);
   }
 }
 

@@ -1,7 +1,7 @@
 SOURCES=main.cpp cmdline.cpp
 EXEC=pdfget
 
-CPPFLAGS=-O3 -march=pentium -funroll-all-loops -finline-functions -Wall -g -I..
+CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I..
 LDFLAGS=-L../ -lnpdf -lssl -ljpeg
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\

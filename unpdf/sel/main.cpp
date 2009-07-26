@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdlib.h>
 #include "pdfbase.h"
 #include "pdfparse.h"
 #include "exception.h"

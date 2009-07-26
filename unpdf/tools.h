@@ -2,6 +2,8 @@
 #define _TOOLS_H
 
 #include <stdarg.h>
+#include <stdlib.h>
+#include <string.h>
 #include <string>
 
 inline char *a_vsprintf(const char *fmt,va_list ap) // {{{

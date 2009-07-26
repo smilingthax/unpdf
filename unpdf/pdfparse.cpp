@@ -1,5 +1,8 @@
 #include <assert.h>
 #include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+#include <limits.h>
 #include "exception.h"
 #include "pdfparse.h"
 
@@ -315,7 +318,7 @@ Name *PDFTools::Parser::parseName(ParsingInput &in)
   }
   for (int iA=0,len=0;iA<res.second;iA++,len++) {
     if (res.first[iA]=='#') {
-      ret[len]=Parser::one_hex(res.first[iA+1])<<4+Parser::one_hex(res.first[iA+2]);
+      ret[len]=(Parser::one_hex(res.first[iA+1])<<4)+Parser::one_hex(res.first[iA+2]);
       iA+=2;
     } else {
       ret[len]=res.first[iA];

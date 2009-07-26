@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <string.h>
+#include <memory>
 #include "pdfcols.h"
 #include "exception.h"
 /*

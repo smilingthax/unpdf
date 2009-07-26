@@ -1,4 +1,6 @@
 #include <assert.h>
+#include <stdlib.h>
+#include <string.h>
 #include <math.h>
 #include "pdfbase.h"
 #include "pdfparse.h"

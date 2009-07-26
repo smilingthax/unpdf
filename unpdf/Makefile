@@ -2,7 +2,7 @@ SOURCES=main.cpp pdfbase.cpp pdfio.cpp pdfparse.cpp pdffilter.cpp pdfcrypt.cpp p
 EXEC=unpdf
 LIB=libnpdf.a
 
-CPPFLAGS=-O3 -march=pentium -funroll-all-loops -finline-functions -Wall -g
+CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g
 LDFLAGS=-lz -lssl -ljpeg
 
 CPPFLAGS+=-I../g4coder -I../lzwcoder
