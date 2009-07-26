@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdexcept>
 #include <string>
+#include <stdlib.h>
 #include <errno.h>
 #include "pdfio.h"
 #include "pdfbase.h"

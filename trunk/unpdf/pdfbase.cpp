@@ -3,6 +3,9 @@
 #include <stdarg.h>
 #include <math.h>
 #include <typeinfo>
+#include <string.h>
+#include <stdlib.h>
+#include <algorithm>
 #include "pdfio.h"
 #include "pdfbase.h"
 #include "pdfparse.h"

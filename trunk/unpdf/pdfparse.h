@@ -1,6 +1,7 @@
 #ifndef _PDFPARSE_H
 #define _PDFPARSE_H
 
+#include <memory>
 #include "pdfio.h"
 #include "pdfbase.h"
 

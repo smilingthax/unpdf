@@ -1,4 +1,7 @@
 #include <assert.h>
+#include <string.h>
+#include <limits.h>
+#include <stdlib.h>
 #include "pdffilter.h"
 #include "pdffilter_int.h"
 #include "pdfio.h"

@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <memory>
 #include "exception.h"
 #include "pdfcomp.h"
 

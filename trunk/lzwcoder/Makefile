@@ -1,7 +1,7 @@
 SOURCES=main.c gfxfiles.c lzwcode.c
 EXEC=lzwcoder
 
-CFLAGS=-O3 -march=pentium -funroll-all-loops -finline-functions -Wall
+CFLAGS=-O3 -funroll-all-loops -finline-functions -Wall
 
 OBJECTS=$(SOURCES:.c=.o)
 all: $(EXEC)
