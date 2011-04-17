@@ -1,12 +1,12 @@
-SOURCES=main.cpp pdfbase.cpp pdfio.cpp pdfparse.cpp pdffilter.cpp pdfcrypt.cpp pdfcomp.cpp pdfsec.cpp pdfcols.cpp exception.cpp
+SOURCES=main.cpp pdfbase.cpp pdfio.cpp pdfparse.cpp pdffilter.cpp pdfcrypt.cpp pdfcomp.cpp pdfsec.cpp pdfcols.cpp
 EXEC=unpdf
 LIB=libnpdf.a
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g
 LDFLAGS=-lz -lssl -ljpeg
 
-CPPFLAGS+=-I../g4coder -I../lzwcoder
-ADDOBJS+=../g4coder/g4code.o ../lzwcoder/lzwcode.o
+CPPFLAGS+=-I../g4coder -I../lzwcoder -I../lsyscpp
+ADDOBJS+=../g4coder/g4code.o ../lzwcoder/lzwcode.o ../lsyscpp/exception.o
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\
