@@ -36,7 +36,7 @@ namespace FS {
     return (!name.empty())&&(name[0]=='/');
   }
 
-#ifdef _LARGEFILE64_SOURCE
+#if defined(_LARGEFILE64_SOURCE) && !defined(__APPLE__) 
   std::string humanreadable_size(off64_t size);
 #endif
   std::string humanreadable_size(off_t size);
