@@ -1,0 +1,15 @@
+sprintf -> std::string  (s_sprintf)
+fgets -> std::string
+strtr
+
+? some better checking of arguments in Cmdline: one_of, is_set,
+
+? Cmdline refactor to subclasses of cmdopt?
+?  error handling (cb/protected string for message), document errnos?
+    - idea:   protected virtual error(fmt,...) and do_error(str)    -> overrideable    [but throws also exist]
+? don't do  a full scan in parse_one  and is_default   but keep  map<string,cmdopt*> longopts,shortopts 
+
+? extract FS_except  from filesystem.h  and call it  errno_except() or the like
+
+
+? fastmatch -> extract  user code into separate methods.   -- also another version with dyn bsearch [dyn construction]

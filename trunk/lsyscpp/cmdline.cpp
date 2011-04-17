@@ -1,10 +1,11 @@
 #include <assert.h>
-#include <string.h>
-#include <stdlib.h>
-#include <limits.h>
 #include "cmdline.h"
-#include "exception.h"
+//#include "exception.h"
 #include <errno.h>
+#include "filesystem.h"
+#include <string.h>
+#include <limits.h>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -344,14 +345,14 @@ bool Cmdline::parse_fromfile(const std::string &argsfile,const char *pname)
   for (int iA=0;iA<(int)args.size();iA++) {
     argv[iA+1]=args[iA].c_str();
   }
-  // TODO TODO TODO:
+  // TODO TODO TODO;  currently we do:
   // When >pname is set, assume the caller wants to treat the arguments from
   // >argsfile _alone_ as the commandline.
   // When it is not set, we assume that parse(), and thus do_clear(), has already been
   // called, so we call do_parse() directly, avioding do_clear() and also keeping a already
   // extracted >progname.
   if (pname) {
-    return parse(argv.size(),&argv[0]);
+    return parse(argv.size(),&argv[0]); // calls do_clear(pname)
   } else {
     return do_parse(argv.size(),&argv[0]);
   }

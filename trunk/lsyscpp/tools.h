@@ -1,10 +1,10 @@
 #ifndef _TOOLS_H
 #define _TOOLS_H
-
 #include <stdarg.h>
+#include <string>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <string>
 
 inline char *a_vsprintf(const char *fmt,va_list ap) // {{{
 {
@@ -23,7 +23,7 @@ inline char *a_vsprintf(const char *fmt,va_list ap) // {{{
     if (need==-1) {
       len+=100;
     } else if (need>=len) {
-      len=need;
+      len=need+1;
     } else {
       break;
     }
@@ -66,7 +66,7 @@ inline std::string s_vsprintf(const char *fmt,va_list ap) // {{{
     if (need==-1) {
       str.resize(str.size()+100,0);
     } else if (need>=(int)str.size()) {
-      str.resize(need,0);
+      str.resize(need+1,0);
     } else {
       str.resize(need);
       break;
@@ -100,7 +100,7 @@ inline char *a_strtr(const char *string,const char **trFrom,const char **trTo) /
       break;
     }
   }
-  if (!trFrom[iB]) {
+  if (!trFrom[iB]) { // TRICK: now we have length(trFrom)
     startDelete=iB;
   }
   for (iA=0;string[iA];iA++) {
@@ -143,11 +143,57 @@ inline char *a_strtr(const char *string,const char **trFrom,const char **trTo) /
 }
 // }}}
 
+inline std::string s_strtr(const std::string &string,const char **trFrom,const char **trTo) // {{{
+{ 
+  int iA,iB,startDelete=-1;
+  std::string ret;
+ 
+  for (iB=0;trFrom[iB];iB++) {
+    if (!trTo[iB]) {
+      startDelete=iB;
+      break;
+    }
+  }
+  if (!trFrom[iB]) { // TRICK: now we have length(trFrom)
+    startDelete=iB;
+  }
+  const int len=string.size();
+  ret.reserve(len);
+  for (iA=0;iA<len;iA++) {
+    for (iB=0;trFrom[iB];iB++) {
+      if (string.compare(iA,strlen(trFrom[iB]),trFrom[iB])==0) {
+        if (iB<startDelete) {
+          ret.append(trTo[iB]);
+        }
+        iA+=strlen(trFrom[iB])-1;
+        break;
+      }
+    }
+    if (!trFrom[iB]) { // untranslated
+      ret.push_back(string[iA]);
+    }
+  }
+  return ret;
+}
+// }}}
+
 inline char *a_pureascii(const char *string)
 {
   static const char *trFrom[]={ "ä", "ö", "ü", "Ä", "Ö", "Ü", "ß"," ",NULL},
                     *trTo[]  ={"ae","oe","ue","Ae","Oe","Ue","ss",NULL};
   return a_strtr(string,trFrom,trTo);
 }
+
+inline std::string to_hex(const unsigned char *buf,int len) // {{{
+{
+  static const char hex[]="0123456789abcdef";
+  std::string ret(2*len,0);
+  for (int iA=0;iA<len;iA++) {
+    ret[2*iA]=hex[buf[iA]>>4];
+    ret[2*iA+1]=hex[buf[iA]&0xf];
+  }
+  return ret;
+}
+// }}}
 
 #endif
