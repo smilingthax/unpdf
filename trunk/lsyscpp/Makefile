@@ -1,5 +1,5 @@
 SOURCES1=
-SOURCES2=filesystem.cpp exec.cpp cmdline.cpp dir_iter.cpp
+SOURCES2=exception.cpp filesystem.cpp exec.cpp cmdline.cpp dir_iter.cpp
 TESTSRC1=
 TESTSRC2=main.cpp
 LIB1=liblsys.a
