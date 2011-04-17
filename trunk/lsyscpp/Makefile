@@ -9,7 +9,7 @@ EXEC1=fstest
 #CXX=/export/gcc3/usr/bin/g++
 #FLAGS=-I/export/gcc3/usr/include/g++ -I/export/gcc3/usr/include/g++/i486-suse-linux
 
-CFLAGS=-O3 -march=pentium -funroll-all-loops -finline-functions -Wall -g
+CFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g
 CFLAGS+=`pkg-config --cflags libxml-2.0`
 #CFLAGS=-Wall -g
 #LDFLAGS=-g
