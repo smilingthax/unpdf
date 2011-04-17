@@ -1,5 +1,7 @@
 prettify output of <<>> etc
 OutPDF shall not take (FILEOutput &fo), but s.th. like SummingOutput(...) 
+don't use  too much bool default parameters, but special enums
+
 getTake -> _move_from ????
 
 ColorSpace  ,  Image  Image::fromPNG ::from...
