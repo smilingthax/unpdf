@@ -1,8 +1,8 @@
-SOURCES=main.cpp ../../lsyscpp/cmdline.o
+SOURCES=main.cpp
 EXEC=pdfmerge
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
-LDFLAGS=-L../ -lnpdf -lssl -ljpeg
+LDFLAGS=-L../ -lnpdf -lssl -ljpeg ../../lsyscpp/cmdline.o
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\

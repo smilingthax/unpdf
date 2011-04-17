@@ -1,7 +1,7 @@
 SOURCES=main.cpp 
 EXEC=imgtopng
 
-CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I..
+CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
 LDFLAGS=-L../ -lnpdf -lssl
 LDFLAGS+=-llept -lpng -ltiff
 

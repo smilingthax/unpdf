@@ -1,7 +1,7 @@
 SOURCES=main.cpp 
 EXEC=pdfselect
 
-CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I..
+CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp/
 LDFLAGS=-L../ -lnpdf -lssl -ljpeg
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
@@ -30,8 +30,7 @@ clean:
                       | sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@;\
                       [ -s $@ ] || rm -f $@'
 
+.PHONY: $(EXEC)
 $(EXEC): $(OBJECTS)
 	$(CXX) -o $@ $^ $(LDFLAGS)
 
-
-.PHONY: $(EXEC)
