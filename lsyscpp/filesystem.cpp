@@ -113,7 +113,7 @@ string FS::joinPath(const string &a1,const string &a2) // {{{
 }
 // }}}
 
-#ifdef _LARGEFILE64_SOURCE
+#if defined(_LARGEFILE64_SOURCE) && !defined(__APPLE__)
 string FS::humanreadable_size(off64_t size) // {{{
 {
   char tmp[40];
