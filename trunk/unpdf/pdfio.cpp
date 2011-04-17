@@ -6,6 +6,7 @@
 #include "pdfparse.h"
 #include "pdfcrypt.h"
 #include "exception.h"
+#include "filesystem.h"
 #include "tools.h"
 
 using namespace PDFTools;

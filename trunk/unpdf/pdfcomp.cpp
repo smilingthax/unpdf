@@ -663,10 +663,9 @@ Ref PDFTools::OutPDF::outStream(const Dict &dict,Input &readfrom,Encrypt *encryp
       out.flush();
       delete eo;
     } else {
-      OutputPtr out=filter->open(*eo);
+      OutputPtr out(eo,true);
       copy(out,readfrom);
       out.flush();
-      delete eo;
     }
   } else if (filter) {
     OutputPtr out=filter->open(write_base);
