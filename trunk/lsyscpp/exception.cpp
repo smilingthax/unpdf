@@ -27,10 +27,3 @@ const char *UsrError::what() const throw()
   return err;
 }
 // }}}
-
-// {{{ FS_except
-FS_except::FS_except(int errnum) throw() : errnum(errnum)
-{
-  errtext=string(strerror(errnum));
-}
-// }}}
