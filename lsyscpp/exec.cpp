@@ -46,6 +46,8 @@ if (...child) {
 
 using namespace std;
 
+#include <stdio.h>
+
 int Sys::do_exec(const char *execpath,const char **args)
 {
   int pid=fork();

@@ -13,3 +13,4 @@ strtr
 
 
 ? fastmatch -> extract  user code into separate methods.   -- also another version with dyn bsearch [dyn construction]
+fastmatch.h: ELSE with return true;
