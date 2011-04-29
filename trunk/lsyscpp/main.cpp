@@ -3,6 +3,7 @@
 #include "cmdline.h"
 #include "fastmatch.h"
 #include "dir_iter.h"
+#include <stdio.h>
 
 using namespace std;
 
