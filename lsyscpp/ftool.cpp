@@ -31,13 +31,13 @@ string &s_fgets(FILE *f,string &ret,int maxlen)
 }
 #else
 
-string &s_fgets(FILE *f,string &ret,int maxlen)
+string &s_fgets(FILE *f,string &ret,int maxlen,int delim)
 {
   ret.clear();
   int c;
   while ((c=fgetc(f))!=EOF) {
     ret.push_back(c);
-    if (c=='\n') {
+    if (c==delim) {
       return ret; 
     }
     if ( (maxlen!=-1)&&((int)ret.size()>=maxlen) ) {

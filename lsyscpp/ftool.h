@@ -4,7 +4,8 @@
 #include <stdio.h>
 #include <string>
 
-std::string &s_fgets(FILE *f,std::string &ret,int maxlen=-1);
+// delim can be EOF
+std::string &s_fgets(FILE *f,std::string &ret,int maxlen=-1,int delim='\n');
 
 /*namespace File (?)
 char *a_fgets(FILE *f)
