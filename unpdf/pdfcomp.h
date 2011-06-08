@@ -72,13 +72,13 @@ namespace PDFTools {
   };
   class OutStream : public ObjectSet {
   public:
-    OutStream(Input *read_from,bool take);
+    OutStream(Input *read_from,bool take,Dict *sdict=NULL); // moves from >sdict
     ~OutStream();
 
     Ref print(OutPDF &outpdf);
 
     void addDict(const char *key,const Object *obj,bool take=false);
-    OFilter &getFilter();
+    OFilter &ofilter(); // also for modification
     // convenience
     void addDict(const char *key,const char *name); // !! static
 
@@ -202,7 +202,7 @@ namespace PDFTools {
 
     void finish(const Ref *pgref=NULL);
 
-    // advanced
+    // advanced /internally used by OutStream::print
     // the /Length has to already be set, perhaps len==-1 is needed (len is ignored [but set] for encrypt!=NULL or filter!=NULL)
     Ref outStream(const Dict &dict,Input &readfrom,Encrypt *encrypt,OFilter *filter,int &len);
 

@@ -243,6 +243,11 @@ void PDFTools::Page::copy_from(OutPDF &outpdf,PDF &srcpdf,const Page &page,map<R
   pdict.erase("Resources");
   pdict.erase("Contents");
   pdict.erase("Rotate");
+
+  // TODO? better:
+  // we need to kill /Beads  (i.e. root/Catalog:  /Threads);
+  pdict.erase("B"); // can't sensibly handle Beads -- but they potentially pull in "everything"
+  pdict.erase("StructParents"); // no /StructTreeRoot in /Catalog there any more
   
   outpdf.remap_dict(srcpdf,pdict,donemap);
 
@@ -515,8 +520,11 @@ SubInput *PDFTools::InStream::release()
 // }}}
 
 // {{{ PDFTools::OutStream
-PDFTools::OutStream::OutStream(Input *read_from,bool take) : readfrom(read_from),ours(take),encrypt(NULL),filter(NULL)
+PDFTools::OutStream::OutStream(Input *read_from,bool take,Dict *sdict) : readfrom(read_from),ours(take),encrypt(NULL),filter(NULL)
 {
+  if (sdict) {
+    dict._move_from(sdict);
+  }
 }
 
 PDFTools::OutStream::~OutStream()
@@ -571,7 +579,7 @@ void PDFTools::OutStream::addDict(const char *key,const Object *obj,bool take)
   dict.add(key,obj,take);
 }
 
-OFilter &PDFTools::OutStream::getFilter()
+OFilter &PDFTools::OutStream::ofilter()
 {
   if (!filter) {
     filter=new OFilter;
@@ -614,6 +622,7 @@ void PDFTools::OutStream::unsetDict(const char *key)
 }
 // }}}
 
+#include "pdffilter_int.h"
 
 // {{{ PDFTools::OutPDF
 PDFTools::OutPDF::OutPDF(FILEOutput &write_base) : write_base(write_base),xref(true)
@@ -791,6 +800,7 @@ Object *PDFTools::OutPDF::copy_from(PDF &inpdf,const Ref &startref,map<Ref,Ref> 
     outObj(*obj,ret);
     return ret.clone();
   } else if (InStream *sv=dynamic_cast<InStream *>(obj.get())) {
+#if 0
     Ref ret=newRef();
     if (donemap) {
       donemap->insert(make_pair(startref,ret));
@@ -798,6 +808,26 @@ Object *PDFTools::OutPDF::copy_from(PDF &inpdf,const Ref &startref,map<Ref,Ref> 
     remap_dict(inpdf,const_cast<Dict &>(sv->getDict()),donemap); // TODO: bad ...
 
     outObj(*obj,ret);
+#else
+    // FIXME: no newRef here ...  -- infinite remap loop is possible
+
+    InputPtr in=sv->open();
+
+    Dict &indict=const_cast<Dict &>(sv->getDict()); // BEWARE: effectively destroys the InStream 
+    indict.erase("DecodeParams"); // not used any more (after open(), above)
+    indict.erase("Filter");       // and we don't want any (unused) objects copied
+    indict.erase("Length");
+    remap_dict(inpdf,indict,donemap);
+    in.pos(0); // source position is not in sync with subinput any more   -- OMG
+
+    OutStream os(&in,false,&indict);  // TODO?!  InputPtr::operator*() / -> / get()
+    FlateFilter::makeOutput(os.ofilter()); // compression?
+
+    Ref ret=os.print(*this);
+    if (donemap) {
+      donemap->insert(make_pair(startref,ret));
+    }
+#endif
     return ret.clone();
   } else { // unknown type? - just remap
     printf("INFO: unexpected type: %s\n",typeid(*obj).name());
