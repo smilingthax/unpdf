@@ -61,9 +61,10 @@ private:
   Input &read_from;
 //  std::string key;
   RC4 cipher;
+  int curpos;
 };
 
-PDFTools::StandardRC4Crypt::RC4Input::RC4Input(Input &read_from,const string &key) : read_from(read_from),cipher(key)
+PDFTools::StandardRC4Crypt::RC4Input::RC4Input(Input &read_from,const string &key) : read_from(read_from),cipher(key),curpos(0)
 {
 }
 
@@ -72,6 +73,7 @@ int PDFTools::StandardRC4Crypt::RC4Input::read(char *buf,int len)
   int res;
 
   res=read_from.read(buf,len);
+curpos+=res;
   cipher.crypt(buf,buf,res);
   return res;
 }
@@ -86,7 +88,8 @@ void PDFTools::StandardRC4Crypt::RC4Input::pos(long pos)
   if (pos!=0) {
     throw invalid_argument("Repositioning of RC4Input is not supported");
   }
-fprintf(stderr,"WARNING: TODO: crypto not restarted\n"); // TODO
+if (curpos!=0) 
+fprintf(stderr,"WARNING: TODO: crypto not restarted from %d\n",curpos); // TODO
   read_from.pos(0);
 }
 // }}}
