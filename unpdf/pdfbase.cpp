@@ -203,9 +203,9 @@ PDFTools::String::String(const std::string &str,const Decrypt *decrypt,bool _as_
   as_hex=_as_hex;
 }
 
+// TODO: if (output==Encrypt_Output) ...
 void PDFTools::String::print(Output &out) const
 {
-// TODO: if (output==Encrypt_Output) ...
   if (as_hex) {
     out.put('<');
     for (int iA=0;iA<(int)val.size();iA++) {
@@ -217,11 +217,11 @@ void PDFTools::String::print(Output &out) const
     out.put('>');
   } else {
     out.put('(');
-    // escape special chars: \0 \\ \)
+    // escape special chars: \0 \\ \( \) \r     - don't bother about balanced parens
     const char *buf=val.data();
     int iA=0;
     for (int iB=0;iB<(int)val.size();iA++,iB++) {
-      if ( (buf[iA]==0)||(buf[iA]==')')||(buf[iA]=='\\') ) {
+      if ( (buf[iA]==0)||(buf[iA]=='(')||(buf[iA]==')')||(buf[iA]=='\\')||(buf[iA]=='\r') ) {
         out.write(buf,iA);
         if (buf[iA]==0) {
           out.write("\\000",4);
@@ -630,7 +630,7 @@ Object *PDFTools::Dict::get(const char *key)
     throw UsrError("Bad key /%s",key);
   }
   if (!it->second.ours) {
-    throw UsrError("Modification of const Dict entry attemped");
+    throw UsrError("Modification of const Dict entry attempted");
   }
   return const_cast<Object *>(it->second.obj);
 }

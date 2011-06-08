@@ -15,7 +15,7 @@ extern FILEOutput stdfo;
 
 class PG_Cmdline : public Cmdline { // {{{
 public:
-  PG_Cmdline() : Cmdline(true,false,"[options] [input file] [[obj ref]]\n") { // opt_opts, but we do --help ourselfes
+  PG_Cmdline() : Cmdline(true,false,"[options] [input file] [[obj-ref]]\n") { // opt_opts, but we do --help ourselfes
     add_usage("Modes:");
     // mode
     add(NULL,"pages",mode_pages,"Output pagetoc"); // current default
@@ -29,6 +29,7 @@ public:
        // default: value, and only dict for streams (? dict+raw);
     add(NULL,"raw",out_raw,"use raw format"); // no dict
     add(NULL,"image",out_image,"use corresponding image format");
+    add(NULL,"hex",out_hex,"output as hex dump");
     add_usage();
     // 
     add_param("o",NULL,outputfile,"Output to [file]");
@@ -49,6 +50,9 @@ public:
     } else {
       ret=false;
       printf("ERROR: A input-file must be given\n");
+    }
+    if (outputfile=="-") {
+      outputfile.clear(); // use stdout
     }
     // mode
     if (count_of("--pages","--info","--root","--trailer","--page","--obj",NULL)>1) {
@@ -92,13 +96,18 @@ public:
       mode=MODE_PAGES;
     }
     // format
-    if (count_of("--raw","--image",NULL)>1) {
-      printf("ERROR: Only one of --raw and --image may be given\n");
+    if (count_of("--raw","--image","--hex",NULL)>1) {
+      printf("ERROR: Only one of --raw, --image and --hex may be given\n");
       ret=false;
     } else if (out_raw) {
       format=FORMAT_RAW;
     } else if (out_image) {
       format=FORMAT_IMAGE;
+    } else if (out_hex) {
+      format=FORMAT_HEX;
+/* TODO
+    } else if (out_compressed) {
+      format=FORMAT_COMPRESSED; */
     } else {
       format=FORMAT_DEFAULT;
     }
@@ -114,7 +123,7 @@ public:
   int mode_page;
   Ref mode_ref;
 
-  enum { FORMAT_DEFAULT, FORMAT_RAW, FORMAT_IMAGE } format;
+  enum { FORMAT_DEFAULT, FORMAT_RAW, FORMAT_IMAGE, FORMAT_COMPRESSED, FORMAT_HEX } format;
 
   string inputfile;
   string outputfile;
@@ -122,7 +131,7 @@ private:
   bool mode_pages,mode_info,mode_root,mode_trailer;
   string mode_obj;
 
-  bool out_raw,out_image;
+  bool out_raw,out_image,out_hex;
 
 protected:
   bool count_of(const char *first,...) { // {{{
@@ -169,6 +178,47 @@ static bool printable_stream(PDF &pdf,InStream &stm) { // {{{ - if stream conten
     }
   }
   return true;
+}
+// }}}
+
+static void hexdump(Output &out,Input &in) // {{{
+{
+  char buf[16];
+  int iA,iB,pos=0;
+
+  while (1) {
+    iA=in.read(buf,16);
+    if (iA<=0) {
+      break;
+    }
+
+    out.printf("%08x  ",pos);
+    for (iB=0;iB<iA;iB++) {
+      out.printf("%02x ",(unsigned char)buf[iB]);
+      if (iB==7) {
+        out.puts(" ");
+      }
+    }
+    for (;iB<16;iB++) {
+      out.puts("   ");
+      if (iB==7) {
+        out.puts(" "); 
+      }
+    }
+    out.puts(" ");
+    for (iB=0;iB<iA;iB++) {
+      if (isprint(buf[iB])) {
+        out.put(buf[iB]);
+      } else {
+        out.put('.');
+      }
+    }
+    out.put('\n');
+
+    pos+=iA;
+  }
+
+  // return pos;
 }
 // }}}
 
@@ -240,39 +290,37 @@ int main(int argc,char **argv)
 
     FILEOutput fo(!cmdl.outputfile.empty()?cmdl.outputfile.c_str():NULL,stdout);
     // now output robj
-    if (cmdl.format==PG_Cmdline::FORMAT_RAW) {
-      if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
-        stmval->getDict().print(stdfo);
-        InputPtr in=stmval->open(true); // TODO: false
+    if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
+      stmval->getDict().print(stdfo);
+      stdfo.put('\n');
+      if (cmdl.format==PG_Cmdline::FORMAT_RAW) {
+        InputPtr in=stmval->open(true); // TODO: false  (???)
         copy(fo,in);
-      } else {
-        if (!robj.get()) {
-          stdfo.printf("NULL");
-        } else {
-          robj->print(fo);
+        if (cmdl.outputfile.empty()) {
+          stdfo.put('\n');
         }
-        stdfo.put('\n');
-      }
-    // TODO: FORMAT_COMPRESSED   ... decrypted but nothing more...
-    } else if (cmdl.format==PG_Cmdline::FORMAT_IMAGE) {
-      printf("TODO: NOT IMPLEMENTED\n");
-    } else { // FORMAT_DEFAULT
-      if (InStream *stmval=dynamic_cast<InStream *>(robj.get())) {
-        stmval->getDict().print(stdfo);
-        stdfo.put('\n');
+      } else if (cmdl.format==PG_Cmdline::FORMAT_IMAGE) {
+        printf("TODO: NOT IMPLEMENTED\n");
+      } else if (cmdl.format==PG_Cmdline::FORMAT_COMPRESSED) {
+        // TODO: FORMAT_COMPRESSED   ... decrypted but nothing more...
+        printf("TODO: NOT IMPLEMENTED\n");
+      } else if (cmdl.format==PG_Cmdline::FORMAT_HEX) {
+        InputPtr in=stmval->open(false);
+        hexdump(fo,in);
+      } else { // FORMAT_DEFAULT
         if ( (!cmdl.outputfile.empty())||
              (printable_stream(*pdf,*stmval)) ) {
           InputPtr in=stmval->open(false);
           copy(fo,in);
         }
-      } else {
-        if (!robj.get()) {
-          stdfo.printf("NULL");
-        } else {
-          robj->print(fo);
-        }
-        stdfo.put('\n');
       }
+    } else {
+      if (!robj.get()) {
+        stdfo.printf("NULL");
+      } else {
+        robj->print(fo);
+      }
+      stdfo.put('\n');
     }
     fo.flush();
   } catch (exception &ex) {
