@@ -10,15 +10,15 @@ namespace PDFTools {
 
   namespace Parser {
     Object *parse(const char *string);
-    Object *parse(ParsingInput &in,const Decrypt *stm_decrypt=NULL,const Decrypt *str_decrypt=NULL); // NULL if no more input
+    Object *parse(ParsingInput &in,const Decrypt *str_decrypt=NULL); // NULL if no more input
     Object *parseObj(PDF &pdf,SubInput &in,const Ref *ref=NULL); // obj matches >ref?
 
     Object *parseNum(ParsingInput &in); // int or float or ref
     String *parseString(ParsingInput &in,const Decrypt *str_decrypt=NULL);
     String *parseHexstring(ParsingInput &in,const Decrypt *str_decrypt=NULL);
     Name *parseName(ParsingInput &in);
-    Array *parseArray(ParsingInput &in,const Decrypt *stm_decrypt=NULL,const Decrypt *str_decrypt=NULL);
-    Dict *parseDict(ParsingInput &in,const Decrypt *stm_decrypt=NULL,const Decrypt *str_decrypt=NULL);
+    Array *parseArray(ParsingInput &in,const Decrypt *str_decrypt=NULL);
+    Dict *parseDict(ParsingInput &in,const Decrypt *str_decrypt=NULL);
 
     std::pair<int,long> read_pdf(Input &fi); // helper: returns (version,xrefpos)
 

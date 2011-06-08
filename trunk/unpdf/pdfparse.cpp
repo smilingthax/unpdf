@@ -22,8 +22,7 @@ const char PDFTools::Parser::charType[256]={
 }; // space chars "\0\t\r\f\n " = 1,  delimiter chars "()<>[]{}/%" = 2
 // }}}
 
-// {{{ PDFTools::Parser::parse(const char *string)
-Object *PDFTools::Parser::parse(const char *string)
+Object *PDFTools::Parser::parse(const char *string) // {{{
 {
   MemInput mn(string,strlen(string));
   ParsingInput pi(mn);
@@ -32,8 +31,7 @@ Object *PDFTools::Parser::parse(const char *string)
 }
 // }}}
 
-// {{{ Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *stm_decrypt,const Decrypt *str_decrypt)
-Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *stm_decrypt,const Decrypt *str_decrypt)
+Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   in.skip(false);
 
@@ -48,11 +46,11 @@ Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *stm_decrypt,cons
     return parseString(in,str_decrypt);
   } else if (*buf=='<') {
     if ( (res==2)&&(buf[1]=='<') ) {
-      return parseDict(in,stm_decrypt,str_decrypt);
+      return parseDict(in,str_decrypt);
     }
     return parseHexstring(in,str_decrypt);
   } else if (*buf=='[') {
-    return parseArray(in,stm_decrypt,str_decrypt);
+    return parseArray(in,str_decrypt);
   } else if (*buf=='{') {
     throw UsrError("Illegal '{'");
   } else if (*buf=='/') {
@@ -73,8 +71,7 @@ Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *stm_decrypt,cons
 }
 // }}}
 
-// {{{ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref)
-Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref)
+Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref) // {{{
 {
   long startpos=in.basepos();
 
@@ -103,7 +100,7 @@ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref)
       throw UsrError("%s at %ld",uex.what(),startpos);
     }
   }
-  auto_ptr<Object> ret(Parser::parse(psi,stm_decrypt.get(),str_decrypt.get()));
+  auto_ptr<Object> ret(Parser::parse(psi,str_decrypt.get()));
   if (!ret.get()) { // no more input
     return NULL;
   }
@@ -158,8 +155,7 @@ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref)
 }
 // }}}
 
-// {{{ Object *PDFTools::Parser::parseNum(ParsingInput &in) // may return: NumFloat NumInt Ref
-Object *PDFTools::Parser::parseNum(ParsingInput &in)
+Object *PDFTools::Parser::parseNum(ParsingInput &in) // {{{  may return: NumFloat NumInt Ref
 {
   int res=in.readInt();
 
@@ -205,8 +201,7 @@ Object *PDFTools::Parser::parseNum(ParsingInput &in)
 }
 // }}}
 
-// {{{ String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decrypt)
-String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decrypt)
+String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next('(',41)) {
     throw UsrError("Not a String");
@@ -222,13 +217,20 @@ String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decryp
     }
     ret.resize(pos+res);
     for (;pos<(int)ret.size();pos++) {
-      if (ret[pos]=='\\') {
+      const int r=Parser::skip_eol(&ret[pos]);
+      if (r) { // treated as single \n
+        ret[pos]='\n';
+        if (r>1) {
+          memmove(&ret[pos+1],&ret[pos+r],ret.size()-pos-r);
+          ret.resize(ret.size()-r+1);
+        }
+      } else if (ret[pos]=='\\') {
         in.unread(&ret[pos],ret.size()-pos);
         int c=in.read_escape();
         if (c==-1) {
           throw UsrError("String ended prematurely");
         } else if (c==-2) { // empty substitution
-          ret.resize(ret.size()-pos);
+          ret.resize(pos);
         } else {
           ret[pos]=c;
           ret.resize(pos+1);
@@ -241,7 +243,6 @@ String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decryp
         paren++;
       }
     }
-
   }
   in.unread(&ret[pos+1],ret.size()-pos-1); // excluding paren
   ret.resize(pos);
@@ -249,8 +250,7 @@ String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decryp
 }
 // }}}
 
-// {{{ String *PDFTools::Parser::parseHexstring(ParsingInput &in,const Decrypt *str_decrypt)
-String *PDFTools::Parser::parseHexstring(ParsingInput &in,const Decrypt *str_decrypt)
+String *PDFTools::Parser::parseHexstring(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next('<',40)) {
     throw UsrError("Not a Hexstring");
@@ -289,8 +289,7 @@ String *PDFTools::Parser::parseHexstring(ParsingInput &in,const Decrypt *str_dec
 }
 // }}}
 
-// {{{ Name *PDFTools::Parser::parseName(ParsingInput &in)
-Name *PDFTools::Parser::parseName(ParsingInput &in)
+Name *PDFTools::Parser::parseName(ParsingInput &in) // {{{
 {
   if (!in.next("/")) {
     throw UsrError("Not a name");
@@ -330,8 +329,7 @@ Name *PDFTools::Parser::parseName(ParsingInput &in)
 }
 // }}}
 
-// {{{ Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *stm_decrypt,const Decrypt *str_decrypt)
-Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *stm_decrypt,const Decrypt *str_decrypt)
+Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next('[',40)) {
     throw UsrError("Not an Array");
@@ -339,7 +337,7 @@ Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *stm_decrypt,
   auto_ptr<Array> ret(new Array);
   in.skip(false);
   while (!in.next(']')) {
-    const Object *obj=parse(in,stm_decrypt,str_decrypt);
+    const Object *obj=parse(in,str_decrypt);
     if (!obj) {
       throw UsrError("Array not properly terminated");
     }
@@ -350,8 +348,7 @@ Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *stm_decrypt,
 }
 // }}}
 
-// {{{ Dict *PDFTools::Parser::parseDict(ParsingInput &in,const Decrypt *stm_decrypt,const Decrypt *str_decrypt)
-Dict *PDFTools::Parser::parseDict(ParsingInput &in,const Decrypt *stm_decrypt,const Decrypt *str_decrypt)
+Dict *PDFTools::Parser::parseDict(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next("<<",80)) {
     throw UsrError("Not a Dictionary");
@@ -364,7 +361,7 @@ Dict *PDFTools::Parser::parseDict(ParsingInput &in,const Decrypt *stm_decrypt,co
       throw UsrError("Dictionary not properly terminated");
     }
     in.skip(false);
-    Object *obj=parse(in,stm_decrypt,str_decrypt);
+    Object *obj=parse(in,str_decrypt);
     if (!obj) {
       throw UsrError("Dictionary: key without value");
     }
