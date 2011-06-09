@@ -20,7 +20,7 @@ Object *PDFTools::ColorSpace::toObj(OutPDF &outpdf) const
   throw UsrError("Empty Colorspace");
 }
 
-Ref PDFTools::ColorSpace::print(OutPDF &outpdf)
+Ref PDFTools::ColorSpace::output(OutPDF &outpdf)
 {
   return Ref();
 }
@@ -313,7 +313,7 @@ Object *PDFTools::ICCColorSpace::toObj(OutPDF &outpdf) const
 {
   // TODO: if (ref=outpdf.knows(*this)) ...
   if (iccref.ref==0) {
-    throw UsrError("OutPDF::print required before toObj"); // TODO: ... toObj(OutPDF &...)
+    throw UsrError("OutPDF::output required before toObj"); // TODO: ... toObj(OutPDF &...)
   }
   auto_ptr<Array> ret(new Array);
   ret->add(new Name(names[type]),true);
@@ -322,12 +322,12 @@ Object *PDFTools::ICCColorSpace::toObj(OutPDF &outpdf) const
   return ret.release();
 }
 
-Ref PDFTools::ICCColorSpace::print(OutPDF &outpdf)
+Ref PDFTools::ICCColorSpace::output(OutPDF &outpdf)
 {
   MemInput mip(&iccdata[0],iccdata.size());
   OutStream ostm(&mip,false);
 
-  altcs->print(outpdf);
+  altcs->output(outpdf);
 
   ostm.setDict("N",numComp);
 //  ostm.setDict("Alternate",altcs->toObj(outpdf),true);
@@ -350,13 +350,13 @@ Ref PDFTools::ICCColorSpace::print(OutPDF &outpdf)
   }
   Ref metaref;
   if (static_cast<MemIOput &>(meta.getInput()).size()) {
-    metaref=meta.print(outpdf);
+    metaref=meta.output(outpdf);
     ostm.setDict("Metadata",metaref);
   } else {
     ostm.unsetDict("Metadata");
   }
 
-  iccref=ostm.print(outpdf);
+  iccref=ostm.output(outpdf);
   return iccref;
 }
 
@@ -423,7 +423,7 @@ public:
 
   int numComps() const;
 
-  Ref print(OutPDF &outpdf);
+  Ref output(OutPDF &outpdf);
   static PatternColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
 private:
   InStream stm; // TODO: OutStream
@@ -481,13 +481,13 @@ Object *PDFTools::IndexedColorSpace::toObj(OutPDF &outpdf) const
   return ret.release();
 }
 
-Ref PDFTools::IndexedColorSpace::print(OutPDF &outpdf)
+Ref PDFTools::IndexedColorSpace::output(OutPDF &outpdf)
 {
 #if 0
   MemInput mip(&palette[0],palette.size());
   OutStream ostm(&mip,false);
 
-  ref=ostm.print(outpdf);
+  ref=ostm.output(outpdf);
 
   return ref;
 #else
@@ -555,7 +555,7 @@ public:
 
   int numComps() const;
 
-  Ref print(OutPDF &outpdf);
+  Ref output(OutPDF &outpdf);
   static CieColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
 private:
   std::vector<Name *> names;

@@ -15,6 +15,8 @@ OutPDF::copy_from(...) ... "remap" InStream to OutStream
 
 Encrypt ... OutPDF (add StandardSecurityHandler)
 
+// TODO: we probably need makeOutputFrom(/Filter,/DecodeParams);
+// and/or   InStream::decode_up_to
 
 OutPDF::replace_obj(const Ref &ref,const Object *obj)
 ---

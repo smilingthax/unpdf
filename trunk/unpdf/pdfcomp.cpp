@@ -197,7 +197,7 @@ void PDFTools::Page::addResource(const char *which,const char *name,const Object
   }
 }
 
-Ref *PDFTools::Page::print(OutPDF &outpdf,const Ref &pref)
+Ref *PDFTools::Page::output(OutPDF &outpdf,const Ref &parentref)
 {
   // [- add ProcSet to resdict]  (obsolete... needed for Acrobat 4.0 PS printing...)
 
@@ -209,7 +209,7 @@ Ref *PDFTools::Page::print(OutPDF &outpdf,const Ref &pref)
   pdict.erase("Rotate");
 
   pdict.add("Type","Page",Name::STATIC);
-  pdict.add("Parent",&pref);
+  pdict.add("Parent",&parentref);
   pdict.add("MediaBox",&mediabox);
   Ref rdref=outpdf.outObj(resdict);
   pdict.add("Resources",&rdref);
@@ -291,14 +291,14 @@ const Page &PDFTools::PagesTree::operator[](int number) const
   return *pages[number];
 }
 
-Ref PDFTools::PagesTree::print(OutPDF &outpdf)
+Ref PDFTools::PagesTree::output(OutPDF &outpdf)
 {
   Ref ret=outpdf.newRef();
 
   Array kids;
 
   for (int iA=0;iA<(int)pages.size();iA++) {
-    kids.add(pages[iA]->print(outpdf,ret),true); // TODO no clone?
+    kids.add(pages[iA]->output(outpdf,ret),true); // TODO no clone?
   }
   // TODO ? optimize with inheritance
 
@@ -533,45 +533,48 @@ PDFTools::OutStream::~OutStream()
   delete encrypt;
 }
 
-Ref PDFTools::OutStream::print(OutPDF &outpdf)
+Ref PDFTools::OutStream::output(OutPDF &outpdf,bool raw)
 {
-  bool raw=false; // TODO
-
   dict.erase("Length");
-  dict.erase("Filter");
-  dict.erase("DecodeParms");
-  if (filter) {
-    const Object *fary=filter->getFilter();
-    if (fary) {
-      dict.add("Filter",fary);
-      const Object *dpary=filter->getParams();
-      if (dpary) {
-        dict.add("DecodeParms",dpary);
+  if (!raw) {
+    dict.erase("Filter");
+    dict.erase("DecodeParms");
+    if (filter) {
+      const Object *fary=filter->getFilter();
+      if (fary) {
+        dict.add("Filter",fary);
+        const Object *dpary=filter->getParams();
+        if (dpary) {
+          dict.add("DecodeParms",dpary);
+        }
       }
     }
   }
 
-  int len=-1;
+  Ref ref=outpdf.newRef();
   if (  (!encrypt)&&( (raw)||(!filter) )  ) {
+    int len=-1;
     if (MemInput *mip=dynamic_cast<MemInput *>(readfrom)) {
       len=mip->size();
     } else if (MemIOput *mip=dynamic_cast<MemIOput *>(readfrom)) {
       // if !filter && !encrypt
       len=mip->size();
-    }
-    if (len!=-1) { // size already known
+    } // TODO  else if <InStream *> [bad: is InputPtr]  (but: DECODED [or raw] length)
+    if (len!=-1) { // size already known (as long as write_base is byte-transparent)
       dict.add("Length",len);
-      return outpdf.outStream(dict,*readfrom,NULL,NULL,len);
+      const int res=outpdf.outStream(dict,*readfrom,NULL,NULL,ref);
+      assert(res==len); 
+      return ref;
     }
   }
 
   Ref lref=outpdf.newRef();
   dict.add("Length",&lref);
 
-  Ref ret=outpdf.outStream(dict,*readfrom,encrypt,(!raw)?filter:NULL,len);
+  const int len=outpdf.outStream(dict,*readfrom,encrypt,(!raw)?filter:NULL,ref);
 
   outpdf.outObj(NumInteger(len),lref);
-  return ret;
+  return ref;
 }
 
 void PDFTools::OutStream::addDict(const char *key,const Object *obj,bool take)
@@ -655,11 +658,11 @@ void PDFTools::OutPDF::outObj(const Object &obj,const Ref &ref)
   write_base.puts("\nendobj\n");
 }
 
-Ref PDFTools::OutPDF::outStream(const Dict &dict,Input &readfrom,Encrypt *encrypt,OFilter *filter,int &len)
+int PDFTools::OutPDF::outStream(const Dict &dict,Input &readfrom,Encrypt *encrypt,OFilter *filter,const Ref &ref)
 {
-  Ref ret=xref.newRef(write_base.sum());
+  xref.setRef(ref,write_base.sum());
 
-  write_base.printf("%d %d obj\n",ret.ref,ret.gen);
+  write_base.printf("%d %d obj\n",ref.ref,ref.gen);
   dict.print(write_base);
   write_base.puts("\nstream\n");
 
@@ -681,13 +684,13 @@ Ref PDFTools::OutPDF::outStream(const Dict &dict,Input &readfrom,Encrypt *encryp
     copy(out,readfrom);
     out.flush();
   } else {
-    copy(write_base,readfrom,len);
+    copy(write_base,readfrom);
     write_base.flush();
   }
-  len=write_base.sum()-start;
+  const int len=write_base.sum()-start;
   write_base.puts("endstream\n"); //  out.puts("\nendstream\n");
   write_base.puts("endobj\n");
-  return ret;
+  return len;
 }
 
 void PDFTools::OutPDF::finish(const Ref *pgref)
@@ -696,7 +699,7 @@ void PDFTools::OutPDF::finish(const Ref *pgref)
     write_trailer(*pgref);
   } else {
     // PagesTree
-    write_trailer(pages.print(*this));
+    write_trailer(pages.output(*this));
   }
 }
 
@@ -800,34 +803,30 @@ Object *PDFTools::OutPDF::copy_from(PDF &inpdf,const Ref &startref,map<Ref,Ref> 
     outObj(*obj,ret);
     return ret.clone();
   } else if (InStream *sv=dynamic_cast<InStream *>(obj.get())) {
-#if 0
-    Ref ret=newRef();
-    if (donemap) {
-      donemap->insert(make_pair(startref,ret));
-    }
-    remap_dict(inpdf,const_cast<Dict &>(sv->getDict()),donemap); // TODO: bad ...
+    Dict &indict=const_cast<Dict &>(sv->getDict()); // BEWARE: we effectively neuter the InStream
 
-    outObj(*obj,ret);
-#else
     // FIXME: no newRef here ...  -- infinite remap loop is possible
+    const bool rawcopy=false; //true;
 
-    InputPtr in=sv->open();
-
-    Dict &indict=const_cast<Dict &>(sv->getDict()); // BEWARE: effectively destroys the InStream 
-    indict.erase("DecodeParams"); // not used any more (after open(), above)
-    indict.erase("Filter");       // and we don't want any (unused) objects copied
+    if (!rawcopy) {
+      indict.erase("DecodeParams"); // not used any more (after open(), above)
+      indict.erase("Filter");       // and we don't want any (unused) objects copied
+    }
     indict.erase("Length");
+
     remap_dict(inpdf,indict,donemap);
-    in.pos(0); // source position is not in sync with subinput any more   -- OMG
+
+    InputPtr in=sv->open(rawcopy);
 
     OutStream os(&in,false,&indict);  // TODO?!  InputPtr::operator*() / -> / get()
-    FlateFilter::makeOutput(os.ofilter()); // compression?
+    if (!rawcopy) {
+      FlateFilter::makeOutput(os.ofilter()); // compression?
+    }
 
-    Ref ret=os.print(*this);
+    Ref ret=os.output(*this,rawcopy);
     if (donemap) {
       donemap->insert(make_pair(startref,ret));
     }
-#endif
     return ret.clone();
   } else { // unknown type? - just remap
     printf("INFO: unexpected type: %s\n",typeid(*obj).name());

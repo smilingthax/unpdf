@@ -12,7 +12,7 @@
 namespace PDFTools {
 /*
   TODO: The OutPDF contains an array of the used colorspaces.
-  print() has to happpen before toObj()
+  output() has to happpen before toObj()
 
   TODO: or: toObj(Ref ...)
  */
@@ -21,7 +21,7 @@ namespace PDFTools {
 
     virtual Object *toObj(OutPDF &outpdf) const; // the Object-Part
 
-    virtual Ref print(OutPDF &outpdf); // Stream-part (only if needed!)
+    virtual Ref output(OutPDF &outpdf); // Stream-part (only if needed!)
 
     virtual int numComps() const; // number of color components
  
@@ -79,7 +79,7 @@ namespace PDFTools {
     int numComps() const;
 
     Object *toObj(OutPDF &outpdf) const;
-    Ref print(OutPDF &outpdf);
+    Ref output(OutPDF &outpdf);
     static ICCColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
   private:
     CName type;
@@ -102,7 +102,7 @@ namespace PDFTools {
     int numComps() const;
 
     Object *toObj(OutPDF &outpdf) const;
-    Ref print(OutPDF &outpdf);
+    Ref output(OutPDF &outpdf);
     static PatternColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
   private:
     InStream stm; // TODO: OutStream
@@ -120,7 +120,7 @@ namespace PDFTools {
     int numComps() const;
 
     Object *toObj(OutPDF &outpdf) const;
-    Ref print(OutPDF &outpdf);
+    Ref output(OutPDF &outpdf);
     static IndexedColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
   private:
     CName type;
@@ -141,7 +141,7 @@ namespace PDFTools {
     int numComps() const;
 
     Object *toObj(OutPDF &outpdf) const;
-    Ref print(OutPDF &outpdf);
+    Ref output(OutPDF &outpdf);
     static CieColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
   private:
     std::vector<Name *> names;
