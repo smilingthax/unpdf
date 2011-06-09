@@ -41,7 +41,7 @@ namespace PDFTools {
     ObjectSet() {}
     virtual ~ObjectSet() {}
 
-    virtual Ref print(OutPDF &outpdf)=0;
+    virtual Ref output(OutPDF &outpdf)=0;
   private:
     ObjectSet(const ObjectSet &);
     const ObjectSet &operator=(const ObjectSet &);
@@ -75,7 +75,8 @@ namespace PDFTools {
     OutStream(Input *read_from,bool take,Dict *sdict=NULL); // moves from >sdict
     ~OutStream();
 
-    Ref print(OutPDF &outpdf);
+    Ref output(OutPDF &outpdf,bool raw);
+    Ref output(OutPDF &outpdf) { return output(outpdf,false); }
 
     void addDict(const char *key,const Object *obj,bool take=false);
     OFilter &ofilter(); // also for modification
@@ -113,7 +114,7 @@ namespace PDFTools {
     // advanced
     void addResource(const char *which,const char *name,const Object *obj,bool take=false);
 
-    Ref *print(OutPDF &outpdf,const Ref &pref);
+    Ref *output(OutPDF &outpdf,const Ref &parentref);
 
     const Ref *getReadRef() const; // objno, (if read from)
 
@@ -143,7 +144,7 @@ namespace PDFTools {
 
     size_t size() const; // return number of pages
     const Page &operator[](int number) const;
-    Ref print(OutPDF &outpdf);
+    Ref output(OutPDF &outpdf);
 
     Page &add();
     void add(OutPDF &outpdf,PDF &srcpdf,int pageno,std::map<Ref,Ref> *donemap);
@@ -202,9 +203,9 @@ namespace PDFTools {
 
     void finish(const Ref *pgref=NULL);
 
-    // advanced /internally used by OutStream::print
-    // the /Length has to already be set, perhaps len==-1 is needed (len is ignored [but set] for encrypt!=NULL or filter!=NULL)
-    Ref outStream(const Dict &dict,Input &readfrom,Encrypt *encrypt,OFilter *filter,int &len);
+    // advanced /internally used by OutStream::output
+    // returns len; but /Length has to already be set [e.g. as Ref]
+    int outStream(const Dict &dict,Input &readfrom,Encrypt *encrypt,OFilter *filter,const Ref &ref);
 
   //private: 
     FILEOutput &write_base;
