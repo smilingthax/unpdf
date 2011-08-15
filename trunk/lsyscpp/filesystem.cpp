@@ -14,6 +14,7 @@ FS_except::FS_except(int errnum) throw() : errnum(errnum)
   errtext=string(strerror(errnum));
 }
 
+// TODO: only linux(?) allows getcwd(NULL,0)
 string FS::cwd() // {{{
 {
   char *tmp=getcwd(NULL,0);
@@ -23,15 +24,6 @@ string FS::cwd() // {{{
   string ret(tmp);
   free(tmp);
   return ret;
-}
-// }}}
-
-string FS::abspath(const string &filename) // {{{
-{
-  if (is_abspath(filename)) {
-    return filename;
-  }
-  return joinPath(cwd(),filename);
 }
 // }}}
 
@@ -105,11 +97,13 @@ void FS::create_dir(const string &dirname) // {{{
 
 string FS::joinPath(const string &a1,const string &a2) // {{{
 {
+  if (is_abspath(a2)) { // i.e. starts with '/'
+    return a2;
+//    return string(a2,a2.find_first_not_of('/')-1);
+  }
   string ret(a1,0,a1.find_last_not_of('/')+1);
   ret.push_back('/');
-  if (!a2.empty()) {
-    ret.append(a2,a2.find_first_not_of('/'),string::npos);
-  }
+  ret.append(a2);
   return ret;
 }
 // }}}

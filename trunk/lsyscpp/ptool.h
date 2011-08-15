@@ -5,6 +5,9 @@
 #include <vector>
 #include <string.h>
 
+// NOTE: none of these returns empty strings
+
+// any of >delims
 void str_split(std::vector<std::string> &ret,const std::string &buf,const std::string &delims) { // {{{
   size_t start=0,pos;
 
@@ -32,6 +35,7 @@ void str_split(std::vector<std::string> &ret,const char *buf,const char *delims)
 }
 // }}}
 
+// exact >delim
 void str_explode(std::vector<std::string> &ret,const std::string &buf,const std::string &delim) { // {{{
   size_t start=0,pos;
 
