@@ -18,15 +18,16 @@ private:
 
 namespace FS {
   std::string cwd();
-  std::string abspath(const std::string &filename);
   std::string dirname(const std::string &filename);
   std::string basename(const std::string &filename);
   bool exists(const std::string &filename);
   bool is_file(const std::string &path);
   bool is_dir(const std::string &path);
   void create_dir(const std::string &dirname); 
-  std::string joinPath(const std::string &a1,const std::string &a2);
+  std::string joinPath(const std::string &a1,const std::string &a2); // will return only a2, if absolute.
   std::pair<std::string,std::string> extension(const std::string &filename);
+
+  inline std::string abspath(const std::string &filename) { return joinPath(cwd(),filename); }
 
   inline bool is_special_dot(const std::string &name) {
     return (!name.empty())&&(name[0]=='.')&&
