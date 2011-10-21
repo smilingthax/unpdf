@@ -2,7 +2,7 @@ SOURCES=main.cpp
 EXEC=pdfmerge
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
-LDFLAGS=-L../ -lnpdf -lssl -ljpeg ../../lsyscpp/cmdline.o
+LDFLAGS=-L../ -lnpdf -lz -lcrypto -lssl -ljpeg ../../lsyscpp/cmdline.o
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\

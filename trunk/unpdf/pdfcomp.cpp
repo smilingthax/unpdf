@@ -433,6 +433,7 @@ void PDFTools::PagesTree::parsePagesTree_node(PDF &pdf,const Ref &ref,const Ref 
 // }}}
 
 #include "pdffilter.h"
+#include <stdio.h>
 
 extern FILEOutput stdfo;
 

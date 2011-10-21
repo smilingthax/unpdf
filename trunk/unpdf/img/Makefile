@@ -2,7 +2,7 @@ SOURCES=main.cpp
 EXEC=imgtopng
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
-LDFLAGS=-L../ -lnpdf -lssl
+LDFLAGS=-L../ -lnpdf -lcrypto -lz -ljpeg
 LDFLAGS+=-llept -lpng -ltiff
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\

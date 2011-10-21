@@ -1,6 +1,6 @@
 #include <assert.h>
 #include <string.h>
-//#include <stdio.h>
+#include <stdio.h>
 //#include <stdarg.h>
 //#include <errno.h>
 //#include "pdfio.h"

@@ -122,7 +122,7 @@ ObjectPtr &PDFTools::ObjectPtr::operator=(ObjectPtr &optr)
   return *this;
 }
 
-PDFTools::ObjectPtr::ObjectPtr &PDFTools::ObjectPtr::operator=(ObjectPtr_ref ref)
+PDFTools::ObjectPtr &PDFTools::ObjectPtr::operator=(ObjectPtr_ref ref)
 {
   reset(ref.ptr,ref.ours);
   return *this;
