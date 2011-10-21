@@ -199,6 +199,7 @@ namespace PDFTools {
     void add(const char *key,const char *name,Name::FreeT ft=Name::DUP) { add(key,new Name(name,ft),true); } // "/name"
     void add(const char *key,int value) { add(key,new NumInteger(value),true); }
     void add(const char *key,float value) { add(key,new NumFloat(value),true); }
+    void add(const char *key,bool value) { add(key,new Boolean(value),true); }
     // these do not preserve Input position: !!!
     void ensure(PDF &pdf,const char *key,const char *name); 
     ObjectPtr get(PDF &pdf,const char *key) const; // notfound: ObjectPtr.empty()

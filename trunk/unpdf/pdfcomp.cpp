@@ -809,6 +809,18 @@ Object *PDFTools::OutPDF::copy_from(PDF &inpdf,const Ref &startref,map<Ref,Ref> 
     // FIXME: no newRef here ...  -- infinite remap loop is possible
     const bool rawcopy=false; //true;
 
+#if 0
+// OutStream will disembowel indict
+const Object *dparam=indict.find("DecodeParms");
+FaxFilter::Params dp;
+if (dparam) { // TODO: &&(indict.find("Filter") has "CCITTFaxDecode" for this DecodeParms ...)
+  if (const Array *dar=dynamic_cast<const Array *>(dparam)) {
+    dparam=(*dar)[0];
+  }
+  dp=FaxFilter::Params(dynamic_cast<const Dict &>(*dparam)); // FIXME
+}
+#endif
+    // already done in OutStream::output, but we want to avoid remapping any of these
     if (!rawcopy) {
       indict.erase("DecodeParams"); // not used any more (after open(), above)
       indict.erase("Filter");       // and we don't want any (unused) objects copied
@@ -822,6 +834,12 @@ Object *PDFTools::OutPDF::copy_from(PDF &inpdf,const Ref &startref,map<Ref,Ref> 
     OutStream os(&in,false,&indict);  // TODO?!  InputPtr::operator*() / -> / get()
     if (!rawcopy) {
       FlateFilter::makeOutput(os.ofilter()); // compression?
+//      LZWFilter::makeOutput(os.ofilter()); // compression?
+#if 0
+      if (dparam) {
+        FaxFilter::makeOutput(os.ofilter(),dp); // compression?
+      }
+#endif
     }
 
     Ref ret=os.output(*this,rawcopy);

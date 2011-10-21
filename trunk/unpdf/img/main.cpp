@@ -44,14 +44,15 @@ PixOutput::~PixOutput()
   pixDestroy(&pix);
 }
 
-// TODO: format conversations
+// TODO: format conversations; currently only for 1bpp
 void PixOutput::write(const char *buf,int len) 
 {
   const int bwidth=(width+7)/8;
   for (;outrow<height;outrow++,outcol=0) {
     l_uint32 *line=data+outrow*wpl;
     for (;(outcol<bwidth)&&(len>0);outcol++,len--,buf++) {
-      SET_DATA_BYTE(line,outcol,*buf);
+//      SET_DATA_BYTE(line,outcol,*buf);
+      SET_DATA_BYTE(line,outcol,*buf^0xff); // invert 1bpp, as unpdf internal representation has 0=black
     }
     if (!len) {
       break;

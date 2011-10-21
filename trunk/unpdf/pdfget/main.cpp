@@ -27,7 +27,7 @@ public:
     add_param(NULL,"obj",mode_obj,"Output object [ref]"); // default if 2 args
     add_usage();
     // format
-       // default: value, and only dict for streams (? dict+raw);
+       // "default": uncompressed content[only readable stuff is printed to stdout], and only dict for streams (? dict+raw);
     add(NULL,"raw",out_raw,"use raw format"); // no dict
     add(NULL,"image",out_image,"use corresponding image format");
     add(NULL,"hex",out_hex,"output as hex dump");
@@ -106,7 +106,7 @@ public:
       format=FORMAT_IMAGE;
     } else if (out_hex) {
       format=FORMAT_HEX;
-/* TODO
+/* TODO;  Note that RAW is alreay decrypted!
     } else if (out_compressed) {
       format=FORMAT_COMPRESSED; */
     } else {
@@ -226,6 +226,20 @@ static void hexdump(Output &out,Input &in) // {{{
 // TODO: format:  raw(dict+data)/compressed binary  vs. PNG/JPEG/G4(/ZLIB)  vs.  PPM/PBM/TEXT(uncompressed)
 // TODO: common crypt
 // TODO: -o [file] ->fo /replace dump. maybe replace auto_ptr<Object> by ObjectPtr
+
+/* FIXME
+The IMAGE-format needs more thinking:
+ Use-case 1: output uncompressed image data (pbm/ppm/...)
+   [--image]
+ Use-case 2: output compressed image data in a "comparable" format, i.e. lossy/lossless (esp. JPG,PNG)
+   this probably especially means no recompression for JPG!
+   [--jpg]
+ Use-case 3: output compressed image data in "original" format, i.e. JPG, generate wrapper for Flate->PNG, G4(->TIFF?), LZW->TIFF
+   might not always be possible! e.g. LZW with png predictor, etc.
+   [--imgraw]
+
+See also: class Image; in rletest/
+*/
 
 int main(int argc,char **argv)
 {

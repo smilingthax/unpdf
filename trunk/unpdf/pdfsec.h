@@ -4,6 +4,7 @@
 #include <string>
 #include "pdfcomp.h"
 
+// ATTENTION: {Crypto}Output::flush() will restart crypto!
 namespace PDFTools {
   class StandardRC4Crypt : public Decrypt,public Encrypt { // fully symmetric
   public:

@@ -1448,6 +1448,10 @@ Dict *FaxFilter::Params::getDict() const
 }
 // }}}
 
+// NOTE: we have to keep 0 black and 1 white, for compatibility with other pdf filters. 
+//   therefore the default bitmap interpretation, which is also used by CCITT cannot be used internally
+//   that means, we have to invert on input/output.
+//   esp. /BlackIs1 is IMO badly named.
 // {{{ FaxFilter::FInput
 FaxFilter::FInput::FInput(Input &read_from,int kval,int width,bool invert) : read_from(read_from),invert(invert),eof(false)
 {
@@ -1485,7 +1489,7 @@ int FaxFilter::FInput::read(char *buf,int len)
     if (res<0) {
       throw UsrError("decode_g4 failed: %d",res);
     }
-    if (invert) {
+    if (!invert) { // we need 0=black internally
       for (int iA=0;iA<bwidth;iA++,buf++) {
         *buf^=0xff;
       }
@@ -1504,7 +1508,7 @@ int FaxFilter::FInput::read(char *buf,int len)
     if (res<0) {
       throw UsrError("decode_g4 failed: %d",res);
     }
-    if (invert) {
+    if (!invert) { // we need 0=black internally
       for (int iA=0;iA<bwidth;iA++) {
         outbuf[iA]^=0xff;
       }
@@ -1571,7 +1575,7 @@ void FaxFilter::FOutput::write(const char *buf,int len)
     // inpos==bwidth
     buf+=clen;
     len-=clen;
-    if (invert) {
+    if (!invert) { // we need 0=black internally
       for (int iA=0;iA<bwidth;iA++) {
         inbuf[iA]^=0xff;
       }
@@ -1584,7 +1588,7 @@ void FaxFilter::FOutput::write(const char *buf,int len)
   }
   while (len>=bwidth) {
     int res;
-    if (invert) {
+    if (!invert) { // we need 0=black internally
       for (int iA=0;iA<bwidth;iA++) {
         inbuf[iA]=buf[iA]^0xff;
       }

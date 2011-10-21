@@ -59,12 +59,10 @@ public:
   void pos(long pos);
 private:
   Input &read_from;
-//  std::string key;
   RC4 cipher;
-  int curpos;
 };
 
-PDFTools::StandardRC4Crypt::RC4Input::RC4Input(Input &read_from,const string &key) : read_from(read_from),cipher(key),curpos(0)
+PDFTools::StandardRC4Crypt::RC4Input::RC4Input(Input &read_from,const string &key) : read_from(read_from),cipher(key)
 {
 }
 
@@ -73,7 +71,6 @@ int PDFTools::StandardRC4Crypt::RC4Input::read(char *buf,int len)
   int res;
 
   res=read_from.read(buf,len);
-curpos+=res;
   cipher.crypt(buf,buf,res);
   return res;
 }
@@ -88,9 +85,8 @@ void PDFTools::StandardRC4Crypt::RC4Input::pos(long pos)
   if (pos!=0) {
     throw invalid_argument("Repositioning of RC4Input is not supported");
   }
-if (curpos!=0) 
-fprintf(stderr,"WARNING: TODO: crypto not restarted from %d\n",curpos); // TODO
   read_from.pos(0);
+  cipher.restart();
 }
 // }}}
 
@@ -102,7 +98,6 @@ public:
   void flush();
 private:
   Output &write_to;
-//  std::string key;
   RC4 cipher;
   std::vector<char> tmp;
 };
@@ -129,8 +124,8 @@ void PDFTools::StandardRC4Crypt::RC4Output::write(const char *buf,int len)
 
 void PDFTools::StandardRC4Crypt::RC4Output::flush()
 {
-fprintf(stderr,"WARNING: TODO: ecrypto not restarted\n"); // TODO
   write_to.flush();
+  cipher.restart();
 }
 // }}}
 
@@ -217,7 +212,7 @@ int PDFTools::StandardAESDecrypt::AESInput::read_block(char *buf,int len)
   // read full blocks
   const int blen=len&~0xf;
   int res;
-  if (next>=0) {
+  if (next>=0) { // 'unread' this character
     buf[0]=next;
     res=read_from.read(buf+1,blen-1)+1;
   } else {
@@ -281,7 +276,7 @@ int PDFTools::StandardAESDecrypt::AESInput::read(char *buf,int len)
         throw UsrError("Bad padding in AES decrypt");
       }
       olen-=*buf;
-      next=-2;
+      next=-2; // padding seen
     } else {
       next=(unsigned char)c;
     }
