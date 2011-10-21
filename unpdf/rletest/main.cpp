@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
@@ -369,7 +370,7 @@ free(mem);
         LZWFilter::FInput rfi(fi);
         copy(fo,rfi);
       } else if (mode==4) {
-        InflateInput rfi(fi);
+        FlateFilter::FInput rfi(fi);
         copy(fo,rfi);
       } else if (mode==5) {
         RLEFilter::FInput rfi(fi);
@@ -400,7 +401,7 @@ free(mem);
         copy(rfo,fi);
         rfo.flush();
       } else if (mode==4) {
-        DeflateOutput rfo(fo);
+        FlateFilter::FOutput rfo(fo);
         copy(rfo,fi);
         rfo.flush();
       } else if (mode==5) {
