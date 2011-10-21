@@ -1163,6 +1163,158 @@ void LZWFilter::makeOutput(OFilter &filter,const Params &prm)
 // {{{ FlateFilter - FlateDecode
 const char *FlateFilter::name="FlateDecode";
 
+// {{{ FlateFilter::FInput
+FlateFilter::FInput::FInput(Input &read_from) : read_from(read_from)
+{
+  buf.resize(4096);
+  
+  // use defaults
+  zstr.zalloc=Z_NULL;
+  zstr.zfree=Z_NULL;
+  zstr.opaque=Z_NULL;
+
+//  zstr.next_in=(Bytef *)&buf[0];
+//  zstr.avail_in=read_from.read(&buf[0],4096);
+  zstr.next_in=NULL;
+  zstr.avail_in=0;
+
+  zstr.next_out=NULL;
+  zstr.avail_out=0;
+
+  if (inflateInit(&zstr)!=Z_OK) {
+    throw UsrError("Error initializing inflate: %s",zstr.msg);
+  }
+}
+
+FlateFilter::FInput::~FInput()
+{
+  inflateEnd(&zstr);
+}
+
+int FlateFilter::FInput::read(char *_buf,int len)
+{
+  int res;
+  zstr.next_out=(Bytef *)_buf;
+  zstr.avail_out=len;
+  
+  while (zstr.avail_out>0) {
+    if (zstr.avail_in==0) {
+      zstr.next_in=(Bytef *)&buf[0];
+      zstr.avail_in=read_from.read(&buf[0],4096);
+    }
+
+    res=inflate(&zstr,Z_SYNC_FLUSH);
+    if (res==Z_STREAM_END) {
+      return len-zstr.avail_out;
+    } else if (res!=Z_OK) {
+      throw UsrError("Error: inflate failed: %s",zstr.msg);
+    }
+  }
+
+  return len;
+}
+
+long FlateFilter::FInput::pos() const
+{
+  // TODO: return current output position ? 
+  return -1;
+}
+
+void FlateFilter::FInput::pos(long pos)
+{
+  if (pos!=0) {
+    throw invalid_argument("Reposition in Inflate is not supported");
+  }
+  zstr.avail_in=0;
+  zstr.avail_out=0;
+  int err=inflateReset(&zstr);
+  if (err!=Z_OK) {
+    throw UsrError("Error: inflateReset failed: %s",zstr.msg);
+  }
+  read_from.pos(0);
+}
+// }}}
+
+// {{{ FlateFilter::FOutput
+FlateFilter::FOutput::FOutput(Output &write_to) : write_to(write_to)
+{
+  buf.resize(4096);
+  
+  // use defaults
+  zstr.zalloc=Z_NULL;
+  zstr.zfree=Z_NULL;
+  zstr.opaque=Z_NULL;
+
+  if (deflateInit(&zstr,9)!=Z_OK) {
+    throw UsrError("Error initializing deflate: %s",zstr.msg);
+  }
+
+  zstr.next_in=NULL;
+  zstr.avail_in=0;
+
+  zstr.next_out=(Bytef *)&buf[0];
+  zstr.avail_out=buf.size();
+}
+
+FlateFilter::FOutput::~FOutput()
+{
+  deflateEnd(&zstr);
+}
+
+void FlateFilter::FOutput::write(const char *_buf,int len)
+{
+  int olen=0; // TODO: use this in >sum 
+  
+  zstr.next_in=(Bytef *)_buf;
+  if (len<0) {
+    zstr.avail_in=strlen(_buf);
+  } else {
+    zstr.avail_in=len;
+  }
+
+  while (zstr.avail_in) {
+    if (!zstr.avail_out) {
+      write_to.write(&buf[0],buf.size());
+      olen+=buf.size();
+      zstr.next_out=(Bytef *)&buf[0];
+      zstr.avail_out=buf.size();
+    }
+    if (deflate(&zstr,Z_NO_FLUSH)!=Z_OK) {
+      throw UsrError("Error: deflate failed: %s",zstr.msg);
+    }
+  }
+}
+
+void FlateFilter::FOutput::flush()
+{
+  int err;
+  zstr.avail_in=0;
+
+  while (1) {
+    int len=buf.size()-zstr.avail_out; // in our queue!
+    
+    if (len) {
+      write_to.write(&buf[0],len);
+      zstr.next_out=(Bytef *)&buf[0];
+      zstr.avail_out=buf.size();
+    }
+    
+    err=deflate(&zstr,Z_FINISH);
+    if (err==Z_STREAM_END) {
+      write_to.write(&buf[0],buf.size()-zstr.avail_out);
+      break;
+    } else if (err!=Z_OK) {
+      throw UsrError("Error: deflate failed: %s",zstr.msg);
+    }
+  }
+  err=deflateReset(&zstr);
+  if (err!=Z_OK) {
+    throw UsrError("Error: deflateReset failed: %s",zstr.msg);
+  }
+  write_to.flush();
+}
+// }}}
+
 Input *FlateFilter::makeInput(const char *fname,Input &read_from,const Dict *params)
 {
   if (strcmp(fname,name)!=0) {
@@ -1173,14 +1325,14 @@ Input *FlateFilter::makeInput(const char *fname,Input &read_from,const Dict *par
     Params prm(*params);
 
     if (prm.predictor!=1) {
-      return new PredInput(new InflateInput(read_from),prm.width,prm.color,prm.bpc,prm.predictor);
+      return new PredInput(new FInput(read_from),prm.width,prm.color,prm.bpc,prm.predictor);
     }
   }
     /*
-      // return InflateInput("",param1,param2,param3...);
+      // return FInput("",param1,param2,param3...);
       return PngInput("",param1,param2,param3...);
     */
-  return new InflateInput(read_from);
+  return new FInput(read_from);
   /* [PNG]
     ... png: export_native();
   */
@@ -1192,9 +1344,9 @@ void FlateFilter::makeOutput(OFilter &filter,const Params &prm)
     throw UsrError("/EarlyChange not valid for /FlateDecode");
   }
   if (prm.predictor!=1) {
-    filter.addFilter(name,prm.getDict(),new PredOutput(new DeflateOutput(filter.getOutput()),prm.width,prm.color,prm.bpc,prm.predictor));
+    filter.addFilter(name,prm.getDict(),new PredOutput(new FOutput(filter.getOutput()),prm.width,prm.color,prm.bpc,prm.predictor));
   } else {
-    filter.addFilter(name,prm.getDict(),new DeflateOutput(filter.getOutput()));
+    filter.addFilter(name,prm.getDict(),new FOutput(filter.getOutput()));
   }
 }
 // }}}

@@ -1,4 +1,3 @@
-don't have special Deflate/InflateInput but FlateFilter::FInput/FlateFilter::FOutput
 InStream::open(bool raw)  =>  InStream::open(ReadMode mode)    enum ReadMode { UNCOMPRESSED, COMPRESSED(RAW), ENCRYPTED };
 remove InStream::write ?!  -> generic debug_write()?
 pdfget/imgout.{cpp,h}

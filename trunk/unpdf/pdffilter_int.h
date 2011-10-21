@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "pdffilter.h"
+#include <zlib.h>
 
 typedef struct LZWSTATE LZWSTATE;
 typedef struct G4STATE G4STATE;
@@ -164,6 +165,32 @@ namespace PDFTools {
     extern const char *name;
 
     using LZWFilter::Params;
+
+    class FInput : public Input {
+    public: 
+      FInput(Input &read_from);
+      ~FInput();
+
+      int read(char *buf,int len);
+      long pos() const;
+      void pos(long pos); // not good
+    private:
+      Input &read_from;
+      std::vector<char> buf;
+      z_stream zstr;
+    };
+    class FOutput : public Output {
+    public: 
+      FOutput(Output &write_to);
+      ~FOutput();
+
+      void write(const char *buf,int len);
+      void flush();
+    private:
+      Output &write_to;
+      std::vector<char> buf;
+      z_stream zstr;
+    };
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter,const Params &prm=Params());

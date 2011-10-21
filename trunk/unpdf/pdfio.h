@@ -3,7 +3,6 @@
 
 #include <vector>
 #include <string>
-#include <zlib.h>
 #include <stdarg.h>
 
 namespace PDFTools {
@@ -189,31 +188,6 @@ namespace PDFTools {
     FILE *f;
     bool ourclose;
     long sumout;
-  };
-  class InflateInput : public Input {
-  public: 
-    InflateInput(Input &read_from);
-    ~InflateInput();
-
-    int read(char *buf,int len);
-    long pos() const;
-    void pos(long pos); // not good
-  private:
-    Input &read_from;
-    std::vector<char> buf;
-    z_stream zstr;
-  };
-  class DeflateOutput : public Output {
-  public: 
-    DeflateOutput(Output &write_to);
-    ~DeflateOutput();
-
-    void write(const char *buf,int len);
-    void flush();
-  private:
-    Output &write_to;
-    std::vector<char> buf;
-    z_stream zstr;
   };
   class ParsingInput : public Input {
   public:
