@@ -30,6 +30,7 @@ namespace PDFTools {
     RC4(const std::string &key);
     ~RC4();
     void setkey(const char *key,int len);
+    void restart();
 
     void crypt(char *dst,const char *src,int len); // decrypt==encrypt
        // dst==src is allowed
@@ -45,7 +46,7 @@ namespace PDFTools {
     AESCBC(); // default: encrypt
     AESCBC(const std::string &key,bool encrypt);
     ~AESCBC();
-    // 16 byte >iv
+    // 16 byte >key
     void setkey(const char *key,int len,bool encrypt);
 
     // 16 byte >iv, will be updated,  >len to be multiple of 16

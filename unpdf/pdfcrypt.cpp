@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <string.h>
 #include "pdfcrypt.h"
 #include "exception.h"
 
@@ -78,6 +79,8 @@ void PDFTools::MD5::md5(char *hash,const char *data,int len)
 // {{{ PDFTools::RC4
 class PDFTools::RC4::RC4_impl {
 public:
+  int m_startlen;
+  unsigned char m_startkey[16];
   RC4_KEY m_key;
 };
 
@@ -100,7 +103,15 @@ PDFTools::RC4::RC4(const string &key) : impl(new RC4_impl)
 void PDFTools::RC4::setkey(const char *key,int len)
 {
   assert( (len>0)&&(len<=16) );
-  RC4_set_key(&impl->m_key,len,(const unsigned char *)key);
+  impl->m_startlen=len;
+  memcpy(impl->m_startkey,key,len);
+  restart();
+}
+
+void PDFTools::RC4::restart()
+{
+//  RC4_set_key(&impl->m_key,impl->m_startlen,(const unsigned char *)impl->m_startkey);
+  RC4_set_key(&impl->m_key,impl->m_startlen,impl->m_startkey);
 }
 
 void PDFTools::RC4::crypt(char *dst,const char *src,int len)

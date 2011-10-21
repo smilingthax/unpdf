@@ -1,6 +1,7 @@
 SOURCES=main.cpp pdfbase.cpp pdfio.cpp pdfparse.cpp pdffilter.cpp pdfcrypt.cpp pdfcomp.cpp pdfsec.cpp pdfcols.cpp
 EXEC=unpdf
 LIB=libnpdf.a
+SUBDIRS=sel merge pdfget pdfput img
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g
 LDFLAGS=-lz -lcrypto -ljpeg
@@ -39,3 +40,8 @@ $(EXEC): $(OBJECTS)
 
 $(LIB): $(filter-out main.o,$(OBJECTS))
 	$(AR) rcu $@ $^ $(ADDOBJS)
+
+subdirs: $(SUBDIRS)
+.PHONY: $(SUBDIRS)
+$(SUBDIRS):
+	@$(MAKE) -C $@

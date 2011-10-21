@@ -1,3 +1,8 @@
+don't have special Deflate/InflateInput but FlateFilter::FInput/FlateFilter::FOutput
+InStream::open(bool raw)  =>  InStream::open(ReadMode mode)    enum ReadMode { UNCOMPRESSED, COMPRESSED(RAW), ENCRYPTED };
+remove InStream::write ?!  -> generic debug_write()?
+pdfget/imgout.{cpp,h}
+--
 prettify output of <<>> etc
 OutPDF shall not take (FILEOutput &fo), but s.th. like SummingOutput(...) 
 don't use  too much bool default parameters, but special enums
