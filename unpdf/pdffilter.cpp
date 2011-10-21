@@ -9,6 +9,7 @@
 #include "pdfparse.h"
 #include "exception.h"
 #include <typeinfo> // TODO? typename into Object
+#include <stdio.h>
 
 #include "lzwcode.h"
 #include "g4code.h"

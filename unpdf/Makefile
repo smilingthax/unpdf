@@ -3,7 +3,7 @@ EXEC=unpdf
 LIB=libnpdf.a
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g
-LDFLAGS=-lz -lssl -ljpeg
+LDFLAGS=-lz -lcrypto -ljpeg
 
 CPPFLAGS+=-I../g4coder -I../lzwcoder -I../lsyscpp
 ADDOBJS+=../g4coder/g4code.o ../lzwcoder/lzwcode.o ../lsyscpp/exception.o ../lsyscpp/filesystem.o

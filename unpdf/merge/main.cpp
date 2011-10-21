@@ -4,6 +4,7 @@
 #include "pdfparse.h"
 #include "exception.h"
 #include "cmdline.h"
+#include <stdio.h>
 
 using namespace std;
 using namespace PDFTools;

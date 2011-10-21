@@ -4,6 +4,7 @@
 #include <vector>
 #include <string>
 #include <zlib.h>
+#include <stdarg.h>
 
 namespace PDFTools {
   class Ref;
