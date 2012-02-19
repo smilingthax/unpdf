@@ -297,7 +297,7 @@ int decode_lzw(LZWSTATE *state,unsigned char *buf,int len)
     }
     if (state->numcodes==(1<<state->codebits)-state->earlychange) {
       if (state->codebits==LZW_MAXBITS) {
-        // just keep codebits
+        // leave table unchanged, keep codebits (see also GIF 89a)
 #if 1  // TODO? encode: as long as no high code used (->verbatim coding) there is no need for reset (Adobe PDFLib 5.0 does it!)
         state->numcodes--;
 #else
