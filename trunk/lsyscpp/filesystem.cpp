@@ -2,10 +2,14 @@
 #include "filesystem.h"
 #include <errno.h>
 #include <sys/stat.h>
+#ifndef _WIN32
 #include <sys/statvfs.h>
+#endif
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+
+// TODO?! ( defined(_WIN32)||defined(__WIN32__) )&&(!defined(__CYGWIN__)
 
 using namespace std;
 
@@ -15,6 +19,7 @@ FS_except::FS_except(int errnum) throw() : errnum(errnum)
 }
 
 // TODO: only linux(?) allows getcwd(NULL,0)
+#if !defined(_WIN32)&&!defined(__APPLE__)  // for now
 string FS::cwd() // {{{
 {
   char *tmp=getcwd(NULL,0);
@@ -26,6 +31,7 @@ string FS::cwd() // {{{
   return ret;
 }
 // }}}
+#endif
 
 string FS::basename(const string &filename) // {{{
 {
@@ -88,7 +94,11 @@ bool FS::is_dir(const std::string &path) // {{{
 
 void FS::create_dir(const string &dirname) // {{{
 {
+#ifdef _WIN32
+  int res=mkdir(dirname.c_str());
+#else
   int res=mkdir(dirname.c_str(),0777);
+#endif
   if (res==-1) {
     throw FS_except(errno);
   }
@@ -132,6 +142,7 @@ string FS::humanreadable_size(off64_t size) // {{{
 // }}}
 #endif
 
+#ifndef _WIN32  // for now
 FS::dstat_t FS::get_diskstat(const std::string &path,bool rootspace) // {{{
 {
   struct statvfs svs;
@@ -155,6 +166,7 @@ FS::dstat_t FS::get_diskstat(const std::string &path,bool rootspace) // {{{
   return ret;
 }
 // }}}
+#endif
 
 string FS::humanreadable_size(off_t size) // {{{
 {
