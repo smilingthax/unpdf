@@ -15,9 +15,9 @@
 
 2)
   Switch<const char *,void (*)()>("asdf",{ // sorted:
-    {"asdf",[](){ printf("0\n"); }},
-    {"bde",[](){ printf("1\n"); }},
-    {"ger",[](){ printf("2\n"); }}
+    {"asdf",[]{ printf("0\n"); }},
+    {"bde",[]{ printf("1\n"); }},
+    {"ger",[]{ printf("2\n"); }}
   },[](const char *a,const char *b){ return strcmp(a,b)<0;});
 
 3)
