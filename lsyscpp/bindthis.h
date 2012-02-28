@@ -4,7 +4,7 @@
 // use as:
 //   YourClass instance;
 //   auto tmi=bind_this(&YourClass::TheMethod,&instance);
-//   ...tmi(...);
+//   int k=tmi("blubb"); // instead of  instance.TheMethod("blubb")
 
 template <typename T,typename R,typename... Args>
 struct BoundThis {
