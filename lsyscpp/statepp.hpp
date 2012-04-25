@@ -61,6 +61,8 @@ bool success=StatePP::next_state_static<Trans>(state,E1());
 StatePP::next_state_static<Trans>(state,E1());
 StatePP::next_state_static<Trans>(state,E2());
 ...
+// StatePP::next_state(state,E2(),...trans...);
+//    TTS (static)  vs  TTR    [may want "const {}" with TTR?]
 
 */
 
@@ -69,11 +71,7 @@ namespace StatePP {
   namespace detail {
     template <typename Base>
     struct GetBase : boost::static_visitor<Base&> {
-      template <class S>
-      Base &operator()(S &s) const { 
-        static_assert(std::is_base_of<Base,S>::value,"Not all states have the needed base class"); // just hint the user why the next line fails
-        return static_cast<Base&>(s);
-      }
+      Base &operator()(Base &s) const { return s; }
     }; 
   } // namespace detail
 
