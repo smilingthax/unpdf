@@ -384,9 +384,11 @@ pair<int,long> PDFTools::Parser::read_pdf(Input &fi) // {{{
   }
   int version=(tmp[5]-'0')*10+(tmp[7]-'0');
 
-  fi.pos(-1024);
-  rlen=fi.read(buf,1024);
-  buf[rlen]=0;
+  if (rlen==1024) { // i.e. pdf is not smaller than 1k, otherwise the pos() will fail.
+    fi.pos(-1024);
+    rlen=fi.read(buf,1024);
+    buf[rlen]=0;
+  }
 
   for (tmp=buf+rlen-1-9;tmp>=buf;tmp--) {
     if (strncmp(tmp,"startxref",9)==0) {
