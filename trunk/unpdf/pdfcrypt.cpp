@@ -4,6 +4,7 @@
 #include "exception.h"
 
 #include <openssl/md5.h>
+#include <openssl/sha.h>
 #include <openssl/rc4.h>
 #include <openssl/aes.h>
 #include <openssl/rand.h>
@@ -72,6 +73,62 @@ void PDFTools::MD5::md5(char *hash,const char *data,int len)
   unsigned char *res=::MD5((const unsigned char *)data,len,(unsigned char *)hash);
   if (!res) {
     throw UsrError("MD5 failed");
+  }
+}
+// }}}
+
+// {{{ PDFTools::SHA256
+class PDFTools::SHA256::SHA256_impl {
+public:
+  SHA256_CTX ctx;
+};
+
+PDFTools::SHA256::SHA256() : impl(new SHA256_impl)
+{
+}
+
+PDFTools::SHA256::~SHA256()
+{
+  delete impl;
+}
+
+void PDFTools::SHA256::init()
+{
+  int res=SHA256_Init(&impl->ctx);
+  if (!res) {
+    throw UsrError("SHA256_Init failed");
+  }
+}
+
+void PDFTools::SHA256::update(const char *data,int len)
+{
+  int res=SHA256_Update(&impl->ctx,data,len);
+  if (!res) {
+    throw UsrError("SHA256_Update failed");
+  }
+}
+
+void PDFTools::SHA256::update(const string &str)
+{
+  int res=SHA256_Update(&impl->ctx,str.data(),str.size());
+  if (!res) {
+    throw UsrError("SHA256_Update failed");
+  }
+}
+
+void PDFTools::SHA256::finish(char *hash)
+{
+  int res=SHA256_Final((unsigned char*)hash,&impl->ctx);
+  if (!res) {
+    throw UsrError("SHA256_Final failed");
+  }
+}
+
+void PDFTools::SHA256::sha256(char *hash,const char *data,int len)
+{
+  unsigned char *res=::SHA256((const unsigned char *)data,len,(unsigned char *)hash);
+  if (!res) {
+    throw UsrError("SHA256 failed");
   }
 }
 // }}}
@@ -145,7 +202,7 @@ PDFTools::AESCBC::AESCBC(const string &key,bool encrypt) : impl(new AES_impl)
 
 void PDFTools::AESCBC::setkey(const char *key,int len,bool encrypt)
 {
-  assert( (len>0)&&(len<=16) );
+  assert( (len==16)||(len==32) );
   if (encrypt) {
     AES_set_encrypt_key((const unsigned char *)key,len*8,&impl->m_key);
   } else {
@@ -153,6 +210,7 @@ void PDFTools::AESCBC::setkey(const char *key,int len,bool encrypt)
   }
 }
 
+// TODO? allow iv=NULL (i.e. keep track internally?)
 void PDFTools::AESCBC::encrypt(char *dst,const char *src,int len,char *iv)
 {
   AES_cbc_encrypt((const unsigned char *)src,(unsigned char *)dst,len,&impl->m_key,(unsigned char *)iv,AES_ENCRYPT);

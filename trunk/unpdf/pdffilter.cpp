@@ -2339,6 +2339,7 @@ Input *CryptFilter::makeInput(const char *fname,Input &read_from,const Dict *par
   if (strcmp(fname,name)!=0) {
     return NULL;
   }
+  fprintf(stderr,"WARNING: Crypt not implemented\n");
   return NULL; // not implemented
 }
 

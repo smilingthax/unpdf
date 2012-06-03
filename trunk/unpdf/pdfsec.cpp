@@ -1,6 +1,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdio.h>
+#include <memory>
 //#include <stdarg.h>
 //#include <errno.h>
 //#include "pdfio.h"
@@ -157,9 +158,6 @@ PDFTools::StandardAESDecrypt::StandardAESDecrypt(const Ref &objref,const string 
   hash.update("sAlT",4);
   objkey.resize(16);
   hash.finish(&objkey[0]);
-  if ((key.size()+5)<16) {
-    objkey.resize(key.size()+5);
-  }
 }
 
 void PDFTools::StandardAESDecrypt::operator()(std::string &dst,const std::string &src) const
@@ -364,9 +362,6 @@ PDFTools::StandardAESEncrypt::StandardAESEncrypt(const Ref &objref,const string 
   hash.update("sAlT",4);
   objkey.resize(16);
   hash.finish(&objkey[0]);
-  if ((key.size()+5)<16) {
-    objkey.resize(key.size()+5);
-  }
 }
 
 void PDFTools::StandardAESEncrypt::operator()(std::string &dst,const std::string &src,const std::string &_iv) const
@@ -492,7 +487,7 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
   // we already know: /Filter /Standard
 
   algo=dict.getInt(pdf,"V",0);
-  if ( (algo!=1)&&(algo!=2)&&(algo!=4) ) {
+  if ( (algo!=1)&&(algo!=2)&&(algo!=4)&&(algo!=5) ) {
     throw UsrError("Encryption algorithm %d not supported",algo);
   }
 
@@ -500,7 +495,7 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
   encryptMeta=true; // TODO: respect this later on
   if (algo==2) {  // ||(algo==3)
     len=dict.getInt(pdf,"Length",40);
-  } else if (algo==4) {
+  } else if ( (algo==4)||(algo==5) ) {
     encryptMeta=dict.getBool(pdf,"EncryptMetadata",true);
     // read CF dict
     ObjectPtr optr=dict.get(pdf,"CF");
@@ -531,7 +526,7 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
     }
     len=stdcf.len;
   }
-  if ( (len<40)||(len>128)||((len%8)!=0) ) {
+  if ( (len<40)||(len>256)||((len%8)!=0) ) {
     throw UsrError("Bad encryption length: %d",len);
   }
 
@@ -544,47 +539,94 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
     if (algo!=4) {
       throw UsrError("Bad Security Revision");
     }
+    if (len!=128) {
+      throw UsrError("Bad key length"); // supp.3  clarifies: algo(V)=4  =>  length==128   (addition to 3.5. pg 116)
+    }
+  } else if (rev==5) {
+    if (algo!=5) {
+      throw UsrError("Bad Security Revision");
+    }
+    if (len!=256) {
+      throw UsrError("Bad key length");
+    }
   } else if (rev!=3) {
     throw UsrError("SecurityHandler revision %d not supported",rev);
   }
 
   ownerpw_hash=dict.getString(pdf,"O");
   userpw_hash=dict.getString(pdf,"U");
-  
+
   perm=dict.getInt(pdf,"P");
 
-  if (!check_ownerpw(string())) {
-    if (!check_userpw(string())) {
-      fprintf(stderr,"WARNING: not authenticated\n");
-    } else {
-      fprintf(stderr,"NOTE: only permissions %x\n",perm);
-    }
+  if (rev==5) {
+    ownerpw_key=dict.getString(pdf,"OE");
+    userpw_key=dict.getString(pdf,"UE");
+    perm_enc=dict.getString(pdf,"Perms");
   }
+ 
+  check_pw(string());
 }
 
-void PDFTools::StandardSecurityHandler::parse_stdcf(PDF &pdf,const Object *obj)
+bool PDFTools::StandardSecurityHandler::check_pw(const std::string &pw) // {{{
+{
+  userpw.clear();
+  ownerpw.clear();
+  filekey.clear();
+
+  bool owner=false,user=false;
+  if (rev==5) {
+    owner=check_ownerpw32a(pw);
+    if (!owner) {
+      user=check_userpw32a(pw);
+    }
+  } else {
+    owner=check_ownerpw(pw);
+    if (!owner) {
+      user=check_userpw(pw);
+    }
+  }
+  if (!owner) {
+    fprintf(stderr,"NOTE: only permissions %x\n",perm);
+  } else if (!user) {
+    fprintf(stderr,"WARNING: not authenticated\n");
+    return false;
+  }
+  return true;
+}
+// }}}
+
+void PDFTools::StandardSecurityHandler::parse_stdcf(PDF &pdf,const Object *obj) // {{{
 {
   const Dict *dval=dynamic_cast<const Dict *>(obj);
   if (!dval) {
     throw UsrError("/StdCF is not a dictionary");
   }
-  int type=dval->getNames(pdf,"CFM","None","V2","AESV2",NULL);
-  assert( (type>=0)&&(type<=CryptFilter::AESV2) );
+  int type=dval->getNames(pdf,"CFM","None","V2","AESV2","AESV3",NULL);
+  assert( (type>=0)&&(type<=CryptFilter::AESV3) );
   stdcf.method=(CryptFilter::Method)type;
   if (stdcf.method==CryptFilter::None) {
     throw UsrError("/None is not supported in /StdCF");
   }
-  int event=dval->getNames(pdf,"AuthEvent","DocOpen","EFOpen",NULL);
+  int event=dval->getNames(pdf,"AuthEvent","DocOpen","EFOpen",NULL); // only DocOpen, cf. 1.7 Supp.3  (EFOpen deprecated)
   stdcf.event=(CryptFilter::AuthEvent)event;
 
-  stdcf.len=dval->getInt(pdf,"Length",0)*8; // see errata!
+  int deflen=0;
+  if (algo==4) {
+    deflen=128;
+  } else if (algo==5) {
+    deflen=256;
+  }
+  stdcf.len=dval->getInt(pdf,"Length",deflen)*8; // see errata!
+  // I'm not sure whether V2+(algo>3), AESV2+(algo!=4)  are really allowed
 }
+// }}}
 
 const char PDFTools::StandardSecurityHandler::pad[]=
          "\x28\xbf\x4e\x5e\x4e\x75\x8a\x41\x64\x00\x4e\x56\xff\xfa\x01\x08"
          "\x2e\x2e\x00\xb6\xd0\x68\x3e\x80\x2f\x0c\xa9\xfe\x64\x53\x69\x7a";
 
-// compute crypt-key from user_pw
+// compute crypt-key from user_pw 
+// NOTE: user_pw shall be converted from user codepage (UTF-8 via user cp) to PDFDocEncoding
 string PDFTools::StandardSecurityHandler::compute_key(const string &user_pw) // {{{
 {
   const int plen=(user_pw.size()>32)?32:user_pw.size();
@@ -608,7 +650,7 @@ string PDFTools::StandardSecurityHandler::compute_key(const string &user_pw) // 
   hash.finish(buf);
   if (rev>=3) {
     for (int iA=0;iA<50;iA++) {
-      MD5::md5(buf,buf,16);
+      MD5::md5(buf,buf,len/8);
     }
   }
   return string(buf,len/8);
@@ -730,7 +772,7 @@ string PDFTools::StandardSecurityHandler::decrypt_owner_hash(const string &owner
 }
 // }}}
 
-bool PDFTools::StandardSecurityHandler::check_userpw(const string &user_pw)
+bool PDFTools::StandardSecurityHandler::check_userpw(const string &user_pw) // {{{
 {
   string key=compute_key(user_pw);
   string u_hash=compute_user_hash(key);
@@ -745,8 +787,9 @@ bool PDFTools::StandardSecurityHandler::check_userpw(const string &user_pw)
   }
   return false;
 }
+// }}}
 
-bool PDFTools::StandardSecurityHandler::check_ownerpw(const string &owner_pw)
+bool PDFTools::StandardSecurityHandler::check_ownerpw(const string &owner_pw) // {{{
 {
   if (ownerpw_hash.size()!=32) {
     throw UsrError("Encryption /O entry not 32 bytes long");
@@ -755,12 +798,137 @@ bool PDFTools::StandardSecurityHandler::check_ownerpw(const string &owner_pw)
   string owner_key=compute_owner_key(owner_pw);
   string user_pw=decrypt_owner_hash(owner_key,ownerpw_hash);
 
-  if (check_userpw(user_pw)) {
+  if (check_userpw(user_pw)) { // will set filekey
     ownerpw=owner_pw;
     return true;
   }
   return false;
 }
+// }}}
+
+void PDFTools::StandardSecurityHandler::validate_perm() // {{{
+{
+  assert(filekey.size()==32);
+  if (perm_enc.size()!=16) {
+    throw UsrError("Encryption /Perms entry not 32 bytes long");
+  }
+
+  // reference says ECB, but ECB has no IV! (still, because of no_blocks=1, this is equal to CBC with IV=0).
+  AESCBC aes(filekey,false);
+  char iv[16]={0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0},buf[16];
+
+  aes.decrypt(buf,perm_enc.data(),16,iv);
+
+  if ( (buf[9]!='a')||(buf[10]!='d')||(buf[11]!='b') ) {
+    fprintf(stderr,"Warning: Invalid Perms identifier\n");
+    return;
+  }
+  if ( (buf[8]!='T')&&(buf[8]!='F') ) {
+    fprintf(stderr,"Warning: Bad /Perms\n");
+    return;
+  }
+
+  int p=((unsigned char)buf[0])|((unsigned char)buf[1]<<8)|((unsigned char)buf[2]<<16)|((unsigned char)buf[3]<<24);
+  if (p!=perm) {
+    fprintf(stderr,"Warning: Perms mismatch\n");
+    // TODO?  perm=p;
+  }
+  if ((buf[8]=='T')!=encryptMeta) {
+    fprintf(stderr,"Warning: EncryptMeta mismatch\n");
+    // TODO?  encryptMeta=(buf[8]=='T');
+  }
+}
+// }}}
+
+std::string saslprep(const std::string &in)
+{
+/*
+  // TODO: SASLprep (RFC 4013 with BIDI, Normalize)
+*/
+  return in;
+}
+
+// NOTE: pw in UTF-8
+bool PDFTools::StandardSecurityHandler::check_ownerpw32a(const string &pw) // {{{
+{
+  if (ownerpw_hash.size()!=48) {
+    throw UsrError("Encryption /O entry not 48 bytes long (rev 5)");
+  }
+  if (ownerpw_key.size()!=32) {
+    throw UsrError("Encryption /OE entry not 32 bytes long");
+  }
+  
+  string owner_pw=saslprep(pw);
+  const int plen=(owner_pw.size()>127)?127:owner_pw.size();
+  char buf[32];
+  SHA256 hash;
+
+  hash.init();
+  hash.update(owner_pw.data(),plen);
+  hash.update(ownerpw_hash.data()+32,8);
+  hash.update(userpw_hash);
+  hash.finish(buf);
+
+  if (memcmp(buf,ownerpw_hash.data(),32)==0) {
+    // owner pw correct!
+    hash.init();
+    hash.update(owner_pw.data(),plen);
+    hash.update(ownerpw_hash.data()+40,8);
+    hash.update(userpw_hash);
+    hash.finish(buf);
+    ownerpw=pw; // owner_pw?
+
+    AESCBC aes(buf,false);
+    char iv[16]={0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0};
+    filekey.resize(32);
+    aes.decrypt(&filekey[0],ownerpw_key.data(),32,iv);
+
+    validate_perm();
+    return true;
+  }
+  return false;
+}
+// }}}
+
+bool PDFTools::StandardSecurityHandler::check_userpw32a(const string &pw) // {{{
+{
+  if (userpw_hash.size()!=48) {
+    throw UsrError("Encryption /U entry not 48 bytes long (rev 5)");
+  }
+  if (userpw_key.size()!=32) {
+    throw UsrError("Encryption /OE entry not 32 bytes long");
+  }
+
+  string user_pw=saslprep(pw);
+  const int plen=(user_pw.size()>127)?127:user_pw.size();
+  char buf[32];
+  SHA256 hash;
+
+  hash.init();
+  hash.update(user_pw.data(),plen);
+  hash.update(userpw_hash.data()+32,8);
+  hash.finish(buf);
+
+  if (memcmp(buf,userpw_hash.data(),32)==0) {
+    // user pw correct!
+    hash.init();
+    hash.update(user_pw.data(),plen);
+    hash.update(ownerpw_hash.data()+40,8);
+    hash.finish(buf);
+    userpw=pw; // user_pw?
+
+    AESCBC aes(buf,false);
+    char iv[16]={0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0};
+    filekey.resize(32);
+    aes.decrypt(&filekey[0],userpw_key.data(),32,iv);
+
+    validate_perm();
+    return true;
+  }
+  return false;
+}
+// }}}
+
 
 pair<string,string> PDFTools::StandardSecurityHandler::set_pw(const string &owner_pw,const string &user_pw)
 {
@@ -782,6 +950,125 @@ pair<string,string> PDFTools::StandardSecurityHandler::set_pw(const string &user
   return set_pw(user_pw,user_pw);
 }
 
+pair<string,string> PDFTools::StandardSecurityHandler::set_userpw38(const string &key,const string &pw) // {{{
+{
+  assert(key.size()==32);
+  string salt=RAND::get(16);
+
+  string user_pw=saslprep(pw);
+  const int plen=(user_pw.size()>127)?127:user_pw.size();
+  char buf[32];
+  SHA256 hash;
+
+  hash.init();
+  hash.update(user_pw.data(),plen);
+  hash.update(salt.data(),8);
+  hash.finish(buf);
+  string u_hash(buf,32);
+  u_hash.append(salt);
+
+  hash.init();
+  hash.update(user_pw.data(),plen);
+  hash.update(salt.data()+8,8);
+  hash.finish(buf);
+
+  AESCBC aes(buf,true);
+  char iv[16]={0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0};
+  aes.encrypt(buf,key.data(),32,iv);
+
+  assert(u_hash.size()==48);
+  return make_pair(u_hash,string(buf,32));
+}
+// }}}
+
+pair<string,string> PDFTools::StandardSecurityHandler::set_ownerpw39(const string &key,const string &u_hash,const string &pw) // {{{
+{
+  assert(key.size()==32);
+  assert(u_hash.size()==48);
+  string salt=RAND::get(16);
+
+  string owner_pw=saslprep(pw);
+  const int plen=(owner_pw.size()>127)?127:owner_pw.size();
+  char buf[32];
+  SHA256 hash;
+
+  hash.init();
+  hash.update(owner_pw.data(),plen);
+  hash.update(salt.data(),8);
+  hash.update(u_hash);
+  hash.finish(buf);
+  string o_hash(buf,32);
+  o_hash.append(salt);
+
+  hash.init();
+  hash.update(owner_pw.data(),plen);
+  hash.update(salt.data()+8,8);
+  hash.update(u_hash);
+  hash.finish(buf);
+
+  AESCBC aes(buf,true);
+  char iv[16]={0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0};
+  aes.encrypt(buf,key.data(),32,iv);
+
+  assert(o_hash.size()==48);
+  return make_pair(o_hash,string(buf,32));
+}
+// }}}
+
+Dict *PDFTools::StandardSecurityHandler::set_pw389(const string &owner_pw,const string &user_pw,int perms,bool encmeta) // {{{
+{
+  string key=RAND::get(32);
+
+  pair<string,string> uue=set_userpw38(key,user_pw);
+  pair<string,string> ooe=set_ownerpw39(key,uue.first,owner_pw);
+
+  char buf[16],iv[16]={0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0};
+
+  memset(buf,0xff,8);
+  buf[0]=((unsigned int)perms)&0xff;
+  buf[1]=((unsigned int)perms>>8)&0xff;
+  buf[2]=((unsigned int)perms>>16)&0xff;
+  buf[3]=((unsigned int)perms>>24)&0xff;
+
+  if (encmeta) {
+    buf[8]='T'; 
+  } else {
+    buf[8]='F'; 
+  }
+
+  buf[9]='a';
+  buf[10]='d';
+  buf[11]='b';
+
+  memcpy(buf+12,RAND::get(4).data(),4);
+
+  AESCBC aes(key,true);
+  aes.encrypt(buf,buf,16,iv);
+
+  auto_ptr<Dict> ret(new Dict);
+  ret->add("Filter","Standard",Name::STATIC);
+//  ret->add("SubFilter",...);
+  ret->add("V",5); // TODO?  >=5 required, >5 not yet defined
+/* Still "missing", to be added by caller
+  ret->add("CF");
+  ret->add("StmF");
+  ret->add("StrF");
+  ret->add("EFF");
+*/
+
+  ret->add("R",5); // see /V
+  ret->add("U",new String(uue.first),true);
+  ret->add("UE",new String(uue.second),true);
+  ret->add("O",new String(ooe.first),true);
+  ret->add("OE",new String(ooe.second),true);
+  ret->add("P",perms);
+  ret->add("Perms",new String(buf,16),true);
+  ret->add("EncryptMetadata",encmeta);
+
+  return ret.release();
+}
+// }}}
+
 Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm)
 {
   if ( (cfm<0)||(cfm>Eff) ) {
@@ -794,10 +1081,11 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
     const CryptFilter &cf=modecf[cfm];
     if (cf.len==-1) { // identity
       return NULL;
-    } else if (cf.method==CryptFilter::AESV2) {
-      return new StandardAESDecrypt(ref,filekey);
     } else if (cf.method==CryptFilter::V2) {
       return new StandardRC4Crypt(ref,filekey);
+    } else if ( (cf.method==CryptFilter::AESV2)||
+                (cf.method==CryptFilter::AESV3) ) {
+      return new StandardAESDecrypt(ref,filekey);
     } else {
       fprintf(stderr,"WARNING: /None decryption untested\n");
       return NULL;
@@ -805,4 +1093,5 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   }
   return new StandardRC4Crypt(ref,filekey);
 }
+
 // }}}
