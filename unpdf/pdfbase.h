@@ -213,6 +213,7 @@ namespace PDFTools {
     // when found: ensures direct ... 
     bool getBool_D(const char *key,bool defval) const;
     int getInt_D(const char *key,int defval) const;
+    const char *getName_D(const char *key) const; // or NULL
   private:
     struct DictType {
       DictType(const char *key,const Object *obj,bool ours);

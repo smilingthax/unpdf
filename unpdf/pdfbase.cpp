@@ -541,6 +541,7 @@ Dict::const_iterator PDFTools::Dict::end() const
   return const_iterator(dict.end());
 }
 
+// TODO FIXME: this will create duplicates
 void PDFTools::Dict::add(const char *key,const Object *obj,bool take)
 {
   if ( (!key)||(!obj) ) {
@@ -833,6 +834,19 @@ int PDFTools::Dict::getInt_D(const char *key,int defval) const
   return ival->value();
 }
 
+const char *PDFTools::Dict::getName_D(const char *key) const
+{
+  const Object *obj=find(key);
+  if (!obj) {
+    return NULL;
+  }
+  const Name *nval=dynamic_cast<const Name *>(obj);
+  if (!nval) {
+    throw UsrError("/%s is not a Name",key);
+  }
+  return nval->value();
+}
+
 // {{{ Dict::const_iterator
 ObjectPtr PDFTools::Dict::const_iterator::get(PDF &pdf) const
 {
@@ -1101,7 +1115,8 @@ PDFTools::PDF::PDF(Input &read_base,int version,int xrefpos) : read_base(read_ba
   // Encryption
   pobj=trdict.find("Encrypt");
   if (pobj) {
-    robj.reset(fetch(dynamic_cast<const Ref &>(*pobj))); // throws if not a Ref
+    encryptref=dynamic_cast<const Ref &>(*pobj); // throws if not a Ref
+    robj.reset(fetch(encryptref));
 
     rdict=dynamic_cast<Dict *>(robj.get());
     if (!rdict) {
@@ -1134,28 +1149,28 @@ PDFTools::PDF::~PDF()
   delete security;
 }
 
-Decrypt *PDFTools::PDF::getStmDecrypt(const Ref &ref)
+Decrypt *PDFTools::PDF::getStmDecrypt(const Ref &ref,const char *cryptname)
 {
   if (!security) {
     return NULL;
   }
-  return security->getDecrypt(ref,StandardSecurityHandler::StmF);
+  return security->getDecrypt(ref,StandardSecurityHandler::StmF,cryptname);
 }
 
-Decrypt *PDFTools::PDF::getStrDecrypt(const Ref &ref)
+Decrypt *PDFTools::PDF::getStrDecrypt(const Ref &ref,const char *cryptname)
 {
   if (!security) {
     return NULL;
   }
-  return security->getDecrypt(ref,StandardSecurityHandler::StrF);
+  return security->getDecrypt(ref,StandardSecurityHandler::StrF,cryptname);
 }
 
-Decrypt *PDFTools::PDF::getEffDecrypt(const Ref &ref)
+Decrypt *PDFTools::PDF::getEffDecrypt(const Ref &ref,const char *cryptname)
 {
   if (!security) {
     return NULL;
   }
-  return security->getDecrypt(ref,StandardSecurityHandler::Eff);
+  return security->getDecrypt(ref,StandardSecurityHandler::Eff,cryptname);
 }
 
 Object *PDFTools::PDF::getObject(const Ref &ref)
@@ -1165,7 +1180,10 @@ Object *PDFTools::PDF::getObject(const Ref &ref)
     return new Object();
   }
   SubInput si(read_base,start,xref.getEnd(ref));
- 
+
+  if ( (security)&&(ref==encryptref) ) {
+    return Parser::parseObj(*this,si,NULL); // decryption not applied for direct strings in /Encrypt
+  }
   return Parser::parseObj(*this,si,&ref);
 }
 

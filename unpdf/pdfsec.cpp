@@ -441,6 +441,34 @@ Output *PDFTools::StandardAESEncrypt::getOutput(Output &write_to) const
 // }}}
 
 // {{{ PDFTools::StandardSecurityHandler
+static void getCFName(PDF &pdf,Dict &dict,const char *key,PDFTools::StandardSecurityHandler::CryptFilter &ret,int &len) // {{{
+{
+  ObjectPtr optr=dict.get(pdf,key);
+  if (optr.empty()) {
+    // default is "Identity"
+    return;
+  }
+
+  const Name *cfname=dynamic_cast<const Name *>(optr.get());
+  if (!cfname) {
+    throw UsrError("%s is not a Name",key);
+  }
+
+  ObjectPtr cfptr=dict.get(pdf,"CF");
+  StandardSecurityHandler::get_cf(pdf,cfptr.get(),cfname->value(),ret);
+
+  if (strcmp(key,"EFF")!=0) {
+    ret.event=StandardSecurityHandler::CryptFilter::DocOpen; // override for StrF,StmF, per 1.7 spec
+  }
+  if (len==-1) {
+    len=ret.len;
+  } else if ( (ret.len!=-1)&&(len!=ret.len) ) {
+    throw UsrError("Differing key lengths for StmF,StrF and EFF are not supported (for now?)");
+  }
+}
+// }}}
+
+// TODO: we want to make dict.cf to consist only of direct references
 PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String &firstId,Dict *edict) : docid(firstId.value())
 {
   dict._move_from(edict);
@@ -457,34 +485,20 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
     len=dict.getInt(pdf,"Length",40);
   } else if ( (algo==4)||(algo==5) ) {
     encryptMeta=dict.getBool(pdf,"EncryptMetadata",true);
-    // read CF dict
-    ObjectPtr optr=dict.get(pdf,"CF");
-    const Dict *dcf=dynamic_cast<const Dict *>(optr.get());
-    if (dcf) {
-      for (Dict::const_iterator it=dcf->begin();it!=dcf->end();++it) {
-        if (strcmp(it.key(),"Identity")==0) { // redefinition ignored
-          continue;
-        } else if (strcmp(it.key(),"StdCF")==0) {
-          ObjectPtr pptr=it.get(pdf);
-          parse_stdcf(pdf,pptr.get());
-        } else {
-          throw UsrError("Unsupported crypt filter: /%s",it.key());
-        }
+
+    len=-1;
+    getCFName(pdf,dict,"StmF",modecf[StmF],len);
+    getCFName(pdf,dict,"StrF",modecf[StrF],len);
+    getCFName(pdf,dict,"EFF",modecf[Eff],len);
+
+    if (len<=0) { // esp. ==0
+      if (algo==4) {
+        len=128;
+      } else if (algo==5) {
+        len=256;
       }
+      // I'm not sure whether V2+(algo>3), AESV2+(algo!=4)  are really allowed
     }
-    int ftype=dict.getNames(pdf,"StmF","Identity","StdCF",NULL);
-    if (ftype==1) {
-      modecf[StmF]=stdcf;
-    }
-    ftype=dict.getNames(pdf,"StrF","Identity","StdCF",NULL);
-    if (ftype==1) {
-      modecf[StrF]=stdcf;
-    }
-    ftype=dict.getNames(pdf,"Eff","Identity","StdCF",NULL);
-    if (ftype==1) {
-      modecf[Eff]=stdcf;
-    }
-    len=stdcf.len;
   }
   if ( (len<40)||(len>256)||((len%8)!=0) ) {
     throw UsrError("Bad encryption length: %d",len);
@@ -535,6 +549,28 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
   check_pw(string());
 }
 
+void PDFTools::StandardSecurityHandler::get_cf(PDF &pdf,const Object *cfdict,const char *cryptname,CryptFilter &ret) // {{{
+{
+  if (strcmp(cryptname,"Identity")==0) {
+    return;
+  }
+
+  const Dict *dcf=dynamic_cast<const Dict *>(cfdict);
+  if (!dcf) {
+    throw UsrError("CF is not a dictionary");
+  }
+
+  ObjectPtr optr=dcf->get(pdf,cryptname);
+  if (optr.empty()) {
+    throw UsrError("Crypt filter %s not found in /CF",cryptname);
+  }
+
+  if (!ret.parse(pdf,optr.get())) {
+    throw UsrError("Unsupported crypt filter dictionary for %s",cryptname);
+  }
+}
+// }}}
+
 bool PDFTools::StandardSecurityHandler::check_pw(const std::string &pw) // {{{
 {
   userpw.clear();
@@ -563,29 +599,31 @@ bool PDFTools::StandardSecurityHandler::check_pw(const std::string &pw) // {{{
 }
 // }}}
 
-void PDFTools::StandardSecurityHandler::parse_stdcf(PDF &pdf,const Object *obj) // {{{
+bool PDFTools::StandardSecurityHandler::CryptFilter::parse(PDF &pdf,const Object *obj) // {{{
 {
   const Dict *dval=dynamic_cast<const Dict *>(obj);
   if (!dval) {
-    throw UsrError("/StdCF is not a dictionary");
+    throw UsrError("CF is not a dictionary");
   }
-  int type=dval->getNames(pdf,"CFM","None","V2","AESV2","AESV3",NULL);
-  assert( (type>=0)&&(type<=CryptFilter::AESV3) );
-  stdcf.method=(CryptFilter::Method)type;
-  if (stdcf.method==CryptFilter::None) {
-    throw UsrError("/None is not supported in /StdCF");
-  }
-  int event=dval->getNames(pdf,"AuthEvent","DocOpen","EFOpen",NULL); // only DocOpen, cf. 1.7 Supp.3  (EFOpen deprecated)
-  stdcf.event=(CryptFilter::AuthEvent)event;
+  dval->getNames(pdf,"Type","CryptFilter",NULL);  // optional
 
-  int deflen=0;
-  if (algo==4) {
-    deflen=128;
-  } else if (algo==5) {
-    deflen=256;
+  try {
+    int type=dval->getNames(pdf,"CFM","None","V2","AESV2","AESV3",NULL);
+    assert( (type>=0)&&(type<=AESV3) );
+    method=(Method)type;
+  } catch (...) {
+    // TODO: better: return false, if not in list
+    return false;
   }
-  stdcf.len=dval->getInt(pdf,"Length",deflen)*8; // see errata!
-  // I'm not sure whether V2+(algo>3), AESV2+(algo!=4)  are really allowed
+  if (method==None) {
+    throw UsrError("/None is not supported"); // TODO: we don't understand this fully
+  }
+  int authevent=dval->getNames(pdf,"AuthEvent","DocOpen","EFOpen",NULL); // only DocOpen, cf. 1.7 Supp.3  (EFOpen deprecated?) -- 1.7: if used as StmCF,StrCF: ignore and always use DocOpen
+  event=(AuthEvent)authevent;
+
+  len=dval->getInt(pdf,"Length",0)*8; // see errata!
+
+  return true;
 }
 // }}}
 
@@ -1077,7 +1115,8 @@ string PDFTools::StandardSecurityHandler::get_objkey(const Ref &ref,bool aes) //
 }
 // }}}
 
-Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm)
+// TODO: allow non-/Identity Crypt filters
+Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm,const char *cryptname) // {{{
 {
   if ( (cfm<0)||(cfm>Eff) ) {
     throw invalid_argument("Bad CFMode");
@@ -1085,15 +1124,29 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   if (filekey.empty()) { // not authenticated
     return NULL;
   }
-  if (algo>=4) { // using crypt filter
-    const CryptFilter &cf=modecf[cfm];
-    if (cf.len==-1) { // identity
+  CryptFilter tmpcf,*cf=NULL;
+  if (cryptname) {
+    /* TODO:   (we don't have pdf around!)
+    ObjectPtr cfptr=dict.get(pdf,"CF");
+    get_cf(pdf,cfptr.get(),cryptname,tmpcf);
+    cf=&tmpcf;
+    */ 
+    if (strcmp(cryptname,"Identity")==0) { // only recognized case for now
       return NULL;
-    } else if (cf.method==CryptFilter::V2) {
+    } else {
+      fprintf(stderr,"WARNING: Non-default crypt filter not supported\n");
+    }
+  } else if (algo>=4) { // using default(!) crypt filter
+    cf=&modecf[cfm];
+  }
+  if (cf) {
+    if (cf->len==-1) { // identity
+      return NULL;
+    } else if (cf->method==CryptFilter::V2) {
       return new StandardRC4Crypt(get_objkey(ref,false));
-    } else if (cf.method==CryptFilter::AESV2) {
+    } else if (cf->method==CryptFilter::AESV2) {
       return new StandardAESDecrypt(get_objkey(ref,true));
-    } else if (cf.method==CryptFilter::AESV3) {
+    } else if (cf->method==CryptFilter::AESV3) {
       assert(filekey.size()==256);
       return new StandardAESDecrypt(filekey);
     } else {
@@ -1103,6 +1156,7 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   }
   return new StandardRC4Crypt(get_objkey(ref,false));
 }
+// }}}
 
 // }}}
 

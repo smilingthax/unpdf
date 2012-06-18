@@ -26,6 +26,7 @@ namespace PDFTools {
     int hasBpp() const;
     bool isJPX() const;
     bool isJPX(ColorSpace &cs) const;
+    const char *hasCrypt() const;
   protected:
     void init(const Array &filterspec,const Array &decode_params,Input &read_from);
     static void lateCloseFunc(Input *in,void *user);
@@ -34,6 +35,7 @@ namespace PDFTools {
     std::vector<Input *> filter_chain;
     Array filter;
     Array params;
+    const char *cryptname; // around as long as params is around
   };
   class OFilter : public Filter {
   public:
