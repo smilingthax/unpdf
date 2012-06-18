@@ -5,8 +5,16 @@ pdfget/imgout.{cpp,h}
 prettify output of <<>> etc
 OutPDF shall not take (FILEOutput &fo), but s.th. like SummingOutput(...) 
 don't use  too much bool default parameters, but special enums
+---
+  general method to make dict/array values all direct (problem: either we prespecify the keys,
+  or we can't know what hides behind a ref -- but generally we'd expect a certain type)
+    * main area for now is the StandardSecurityHandler (which might want to use a std::map? [but strings as keys are uncool])
+    * another plase is the IFilter decode-param array
 
-getTake -> _move_from ????
+  move convenience methods from Dict to ObjectPtr
+---
+
+getTake -> _move_from ????   - c++11
 
 ColorSpace  ,  Image  Image::fromPNG ::from...
 

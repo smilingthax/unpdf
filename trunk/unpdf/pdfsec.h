@@ -93,7 +93,7 @@ namespace PDFTools {
   private:
     CryptFilter modecf[3];
 
-    std::string ownerpw,userpw; // stores userinput (ownerpw empty if only userpw known)
+    std::string ownerpw,userpw; // stores userinput (ownerpw empty if only userpw known) // unreliable: ownerpw=="", userpw!="" ...
     std::string filekey; // will be computed; !empty if valid pw known
   };
 };

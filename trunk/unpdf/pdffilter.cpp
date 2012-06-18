@@ -25,8 +25,7 @@ using namespace PDFTools;
 using namespace std;
 
 // helper to wrap a single value into an Array to simplify processing
-// resolve all references 
-// TODO FIXME: also recursively resolve into Dict (only needed for /DecodeParms) -- special method into IFilter ctor?
+// resolve all immediate references 
 void fetch_in_array(Array &ret,PDF &pdf,const Object *obj) // {{{
 {
   ObjectPtr optr=pdf.fetch(obj);
@@ -48,6 +47,25 @@ void fetch_in_array(Array &ret,PDF &pdf,const Object *obj) // {{{
   }
 }
 // }}}
+
+// TODO: resolve 
+const Dict *resolve_dict(const Dict *dict,PDF &pdf,bool owns) // {{ {
+{
+/*
+  if (!dict) ...
+  if (!owns) {
+    ret=dict.clone();
+  } else {
+    ret=dict;
+  }
+  foreach (ret as k=>v) {
+    if (v.isRef()) {
+      ret.set(k,pdf.fetch(v));
+    }
+  }
+*/
+}
+// }} }
 
 // {{{ readfunc_Input, writefunc_Output
 extern "C" {
@@ -81,7 +99,14 @@ PDFTools::IFilter::IFilter(PDF &pdf,const Object &filterspec,const Object *decod
   // deal with /DecodeParms
   if (decode_params) {
     fetch_in_array(params,pdf,decode_params);
+/*
     // TODO resolve references inside of dicts in the array
+    const int len=params.size();
+    for (int iA=0;iA<len;iA++) {
+//      ObjectPtr optr=params.getTake(pdf,iA);
+      params.set(iA,resolve_dict(dynamic_cast<const Dict *>(optr.get()),optr.owns()),true);
+    }
+*/
   } // else empty
 
   try {
@@ -190,21 +215,19 @@ InputPtr PDFTools::IFilter::open(Input *read_from,bool take)
   return InputPtr(filter_chain[0],false,lateCloseFunc,&latein);
 }
 
-// TODO: FIXME: filter_chain.back() is actually read_from.
-// we want filter_chain.front() ??
 int PDFTools::IFilter::hasBpp() const
 {
-  if (dynamic_cast<const FaxFilter::FInput *>(filter_chain.back())) {
+  if (dynamic_cast<const FaxFilter::FInput *>(filter_chain.front())) {
     return 1;
-/*  } else if (dynamic_cast<const JBIG2Filter::FInput *>(filter_chain.back())) {
+/*  } else if (dynamic_cast<const JBIG2Filter::FInput *>(filter_chain.front())) {
     return 1;*/
-  } else if (dynamic_cast<const RLEFilter::FInput *>(filter_chain.back())) {
+  } else if (dynamic_cast<const RLEFilter::FInput *>(filter_chain.front())) {
     return 8;
-  } else if (dynamic_cast<const JpegFilter::FInput *>(filter_chain.back())) {
+  } else if (dynamic_cast<const JpegFilter::FInput *>(filter_chain.front())) {
     return 8;
-/*  } else if (dynamic_cast<const LZWFilter::Predictor *>(filter_chain.back())) {
+/*  } else if (dynamic_cast<const LZWFilter::Predictor *>(filter_chain.front())) {
     return ...; predictor.bpp*/
-/*  } else if (dynamic_cast<const JPXFilter::FInput *>(filter_chain.back())) {
+/*  } else if (dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())) {
     return ...; filter.bpp*/
   }
   return -1;
@@ -213,13 +236,13 @@ int PDFTools::IFilter::hasBpp() const
 bool PDFTools::IFilter::isJPX() const
 {
   return false;
-//  return (dynamic_cast<const JPXFilter::FInput *>(filter_chain.back())!=NULL);
+//  return (dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())!=NULL);
 }
 
 bool PDFTools::IFilter::isJPX(ColorSpace &cs) const
 {
 /*
-  if (JPXFilter::FInput *fx=dynamic_cast<const JPXFilter::FInput *>(filter_chain.back())) {
+  if (JPXFilter::FInput *fx=dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())) {
     cs=fx.cs;
     return true;
   }
