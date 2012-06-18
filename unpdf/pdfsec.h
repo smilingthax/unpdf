@@ -8,7 +8,7 @@
 namespace PDFTools {
   class StandardRC4Crypt : public Decrypt,public Encrypt { // fully symmetric
   public:
-    StandardRC4Crypt(const Ref &objref,const std::string &key);
+    StandardRC4Crypt(const std::string &objkey);
     
     void operator()(std::string &dst,const std::string &src) const;
     Input *getInput(Input &read_from) const;
@@ -20,23 +20,23 @@ namespace PDFTools {
   };
   class StandardAESDecrypt : public Decrypt { // partially symmetric
   public:
-    StandardAESDecrypt(const Ref &objref,const std::string &key);
+    StandardAESDecrypt(const std::string &key);
     
     void operator()(std::string &dst,const std::string &src) const;
     Input *getInput(Input &read_from) const;
   private:
-    std::string objkey;
+    std::string key;
     class AESInput;
   };
   class StandardAESEncrypt : public Encrypt { // partially symmetric
   public:
-    StandardAESEncrypt(const Ref &objref,const std::string &key,const std::string &iv=std::string());
+    StandardAESEncrypt(const std::string &key,const std::string &iv=std::string());
     
     void operator()(std::string &dst,const std::string &src) const { operator()(dst,src,std::string()); }
     void operator()(std::string &dst,const std::string &src,const std::string &iv) const;
     Output *getOutput(Output &write_to) const;
   private:
-    std::string objkey,useiv;
+    std::string key,useiv;
     class AESOutput;
   };
 
@@ -57,6 +57,7 @@ namespace PDFTools {
   protected:
     void parse_stdcf(PDF &pdf,const Object *obj);
     static const char pad[];
+    std::string get_objkey(const Ref &ref,bool aes);
     std::string compute_key(const std::string &user_pw);
     std::string compute_user_hash(const std::string &ukey);
 
