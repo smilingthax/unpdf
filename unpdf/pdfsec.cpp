@@ -589,13 +589,14 @@ bool PDFTools::StandardSecurityHandler::check_pw(const std::string &pw) // {{{
       user=check_userpw(pw);
     }
   }
-  if (!owner) {
+  if (owner) {
+    return true;
+  } else if (user) {
     fprintf(stderr,"NOTE: only permissions %x\n",perm);
-  } else if (!user) {
-    fprintf(stderr,"WARNING: not authenticated\n");
-    return false;
+    return true;
   }
-  return true;
+  fprintf(stderr,"WARNING: not authenticated\n");
+  return false;
 }
 // }}}
 
