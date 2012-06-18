@@ -75,9 +75,8 @@ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref) // {{{
 {
   long startpos=in.basepos();
 
-  auto_ptr<Decrypt> stm_decrypt,str_decrypt;
+  auto_ptr<Decrypt> str_decrypt;
   if (ref) {
-    stm_decrypt.reset(pdf.getStmDecrypt(*ref));
     str_decrypt.reset(pdf.getStrDecrypt(*ref));
   }
 
@@ -137,8 +136,8 @@ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref) // {{{
       }
       long svp=psi.pos(); // save position // TODO
  // TODO  pdf.getEFFDecrypt() ... /EmbeddedFile... if (*ref) ...
-//      ret.reset(new InStream(pdf,dictval,new SubInput(pdf.read_base,streamstart,streamend),stm_decrypt.release(),pdf.getEffDecrypt(*ref)));
-      ret.reset(new InStream(pdf,dictval,new SubInput(pdf.read_base,streamstart,streamend),stm_decrypt.release()));
+//      ret.reset(new InStream(pdf,dictval,new SubInput(pdf.read_base,streamstart,streamend),ref.release(),pdf.getEffDecrypt(*ref)));
+      ret.reset(new InStream(pdf,dictval,new SubInput(pdf.read_base,streamstart,streamend),ref));
       psi.pos(svp); // restore position
     }
   }

@@ -48,7 +48,7 @@ namespace PDFTools {
   };
   class InStream : public Object {
   public:
-    InStream(PDF &pdf,Dict *sdict,SubInput *read_from,Decrypt *decrypt=NULL); // moves from >sdict // takes >decrypt(!) // takes >read_from
+    InStream(PDF &pdf,Dict *sdict,SubInput *read_from,const Ref *decryptref=NULL); // moves from >sdict // takes >read_from
     ~InStream();
 
     const Dict &getDict() const;
@@ -170,9 +170,9 @@ namespace PDFTools {
     Object *fetchP(const Ref &ref) const; // resolve ..., and restore Input position
     Object *getObject(const Ref &ref); // none: Null-object
 
-    Decrypt *getStmDecrypt(const Ref &ref);
-    Decrypt *getStrDecrypt(const Ref &ref);
-    Decrypt *getEffDecrypt(const Ref &ref);
+    Decrypt *getStmDecrypt(const Ref &ref,const char *cryptname=NULL);
+    Decrypt *getStrDecrypt(const Ref &ref,const char *cryptname=NULL);
+    Decrypt *getEffDecrypt(const Ref &ref,const char *cryptname=NULL);
 
   //private: 
     Input &read_base;
@@ -185,6 +185,7 @@ namespace PDFTools {
   private:
     std::pair<std::string,std::string> fileid;
     StandardSecurityHandler *security; // for now...
+    Ref encryptref;
   protected:
     void read_xref_trailer(ParsingInput &pi);
   private:

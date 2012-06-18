@@ -440,16 +440,25 @@ extern FILEOutput stdfo;
 // TODO: InStream(...,SubInput *read_from,...)  // where >read_from is a separate FILEInput ? open/close on demand?
 //        and does take ownership of read_from
 // {{{ PDFTools::InStream
-PDFTools::InStream::InStream(PDF &pdf,Dict *sdict,SubInput *read_from,Decrypt *decrypt) : readfrom(read_from),decrypt(decrypt),filter(NULL)
+PDFTools::InStream::InStream(PDF &pdf,Dict *sdict,SubInput *read_from,const Ref *decryptref)
+  : readfrom(read_from),
+    decrypt(NULL),filter(NULL)
 {
   try {
     dict._move_from(sdict);
     // assert(dict.find("Length")); // "contained" in SubInput
 
+    const char *cryptname=NULL;
+
     //  /Length
     const Object *filterspec=dict.find("Filter");
     if (filterspec) {
       filter=new IFilter(pdf,*filterspec,dict.find("DecodeParms"));
+      cryptname=filter->hasCrypt();
+    }
+
+    if (decryptref) {
+      decrypt=pdf.getStmDecrypt(*decryptref,cryptname); 
     }
   } catch (...) {
     delete filter;
@@ -520,6 +529,7 @@ SubInput *PDFTools::InStream::release()
 }
 // }}}
 
+// TODO: when encryptMeta = false we have to *add*  /Filter[/Crypt] to supress decryption!
 // {{{ PDFTools::OutStream
 PDFTools::OutStream::OutStream(Input *read_from,bool take,Dict *sdict) : readfrom(read_from),ours(take),encrypt(NULL),filter(NULL)
 {

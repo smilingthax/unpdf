@@ -339,13 +339,6 @@ namespace PDFTools {
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter);
   };
-  namespace CryptFilter {
-    extern const char *name;
-
-    struct Params {};
-    Input *makeInput(const char *fname,Input &read_from,const Dict *params);
-    void makeOutput(OFilter &filter,const Params &prm=Params());
-  };
 };
 
 #endif

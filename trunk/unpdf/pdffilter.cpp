@@ -25,7 +25,8 @@ using namespace PDFTools;
 using namespace std;
 
 // helper to wrap a single value into an Array to simplify processing
-// resolve all references
+// resolve all references 
+// TODO FIXME: also recursively resolve into Dict (only needed for /DecodeParms) -- special method into IFilter ctor?
 void fetch_in_array(Array &ret,PDF &pdf,const Object *obj) // {{{
 {
   ObjectPtr optr=pdf.fetch(obj);
@@ -70,7 +71,9 @@ int writefunc_Output(void *user,unsigned char *buf,int len)
 // }}}
 
 // {{{ PDFTools::IFilter
-PDFTools::IFilter::IFilter(PDF &pdf,const Object &filterspec,const Object *decode_params) : latein(NULL,false)
+PDFTools::IFilter::IFilter(PDF &pdf,const Object &filterspec,const Object *decode_params)
+  : latein(NULL,false),
+    cryptname(NULL)
 {
   // deal with /Filter
   fetch_in_array(filter,pdf,&filterspec);
@@ -78,6 +81,7 @@ PDFTools::IFilter::IFilter(PDF &pdf,const Object &filterspec,const Object *decod
   // deal with /DecodeParms
   if (decode_params) {
     fetch_in_array(params,pdf,decode_params);
+    // TODO resolve references inside of dicts in the array
   } // else empty
 
   try {
@@ -104,12 +108,7 @@ void PDFTools::IFilter::init(const Array &filterspec,const Array &decode_params,
     if (!nval) {
       throw UsrError("Entry in /Filter is not a Name");
     }
-    if (strcmp(nval->value(),"Crypt")==0) {
-      if (iA!=len-1) {
-        throw UsrError("Crypt filter must be first");
-      }
-    }
-   
+
     const Dict *dval=NULL;
     if (decode_params.size()) {
       if (!decode_params[iB]) {
@@ -121,6 +120,27 @@ void PDFTools::IFilter::init(const Array &filterspec,const Array &decode_params,
       }
     }
 
+    if (strcmp(nval->value(),"Crypt")==0) {
+      if (iA!=len-1) {
+        throw UsrError("Crypt filter must be first");
+      }
+      // special handling
+      filter_chain.resize(len);
+      filter_chain[len-1]=&read_from;
+      if (dval) {
+        const char *type=dval->getName_D("Type");
+        if ( (type)&&(strcmp(type,"CryptFilterDecodeParams")!=0) ) {
+          throw UsrError("Bad Crypt Decode Parameters");
+        }
+
+        cryptname=dval->getName_D("Name");
+      }
+      if (!cryptname) {
+        cryptname="Identity";
+      }
+      continue;
+    }
+
     ( (filter_chain[iA]=AHexFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 )  ||
     ( (filter_chain[iA]=A85Filter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 )   ||
     ( (filter_chain[iA]=LZWFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 )   ||
@@ -129,8 +149,7 @@ void PDFTools::IFilter::init(const Array &filterspec,const Array &decode_params,
     ( (filter_chain[iA]=FaxFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 )   ||
     ( (filter_chain[iA]=JBIG2Filter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 ) ||
     ( (filter_chain[iA]=JpegFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 )  ||
-    ( (filter_chain[iA]=JPXFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 )   ||
-    ( (filter_chain[iA]=CryptFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 );
+    ( (filter_chain[iA]=JPXFilter::makeInput(nval->value(),*filter_chain[iA+1],dval))!=0 );
 
     if (!filter_chain[iA]) {
 //      throw UsrError("Unsupported Filter: /%s",nval->value());
@@ -171,6 +190,8 @@ InputPtr PDFTools::IFilter::open(Input *read_from,bool take)
   return InputPtr(filter_chain[0],false,lateCloseFunc,&latein);
 }
 
+// TODO: FIXME: filter_chain.back() is actually read_from.
+// we want filter_chain.front() ??
 int PDFTools::IFilter::hasBpp() const
 {
   if (dynamic_cast<const FaxFilter::FInput *>(filter_chain.back())) {
@@ -204,6 +225,11 @@ bool PDFTools::IFilter::isJPX(ColorSpace &cs) const
   }
 */
   return false;
+}
+
+const char *PDFTools::IFilter::hasCrypt() const
+{
+  return cryptname;
 }
 // }}}
 
@@ -2331,21 +2357,3 @@ void JPXFilter::makeOutput(OFilter &filter)
 }
 // }}}
 
-// {{{ CryptFilter - Crypt
-const char *CryptFilter::name="Crypt";
-
-Input *CryptFilter::makeInput(const char *fname,Input &read_from,const Dict *params)
-{
-  if (strcmp(fname,name)!=0) {
-    return NULL;
-  }
-  fprintf(stderr,"WARNING: Crypt not implemented\n");
-  return NULL; // not implemented
-}
-
-void CryptFilter::makeOutput(OFilter &filter,const Params &prm)
-{
-  fprintf(stderr,"WARNING: Output filter /%s not implemented\n",name);
-//  filter.addFilter(name,prm->getDict(),new FOutput(filter.getOutput(),prm.kval,prm.width,prm.invert));
-}
-// }}}
