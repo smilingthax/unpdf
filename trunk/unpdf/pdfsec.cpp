@@ -24,24 +24,9 @@ using namespace std;
 // }}}
 
 // {{{ PDFTools::StandardRC4Crypt
-PDFTools::StandardRC4Crypt::StandardRC4Crypt(const Ref &objref,const string &key)
+PDFTools::StandardRC4Crypt::StandardRC4Crypt(const string &objkey)
+  : objkey(objkey)
 {
-  MD5 hash;
-  char buf[5];
-
-  hash.init();
-  hash.update(key);
-  buf[0]=(objref.ref)&0xff;
-  buf[1]=(objref.ref>>8)&0xff;
-  buf[2]=(objref.ref>>16)&0xff;
-  buf[3]=(objref.gen)&0xff;
-  buf[4]=(objref.gen>>8)&0xff;
-  hash.update(buf,5);
-  objkey.resize(16);
-  hash.finish(&objkey[0]);
-  if ((key.size()+5)<16) {
-    objkey.resize(key.size()+5);
-  }
 }
 
 void PDFTools::StandardRC4Crypt::operator()(std::string &dst,const std::string &src) const
@@ -142,22 +127,9 @@ Output *PDFTools::StandardRC4Crypt::getOutput(Output &write_to) const
 // }}}
 
 // {{{ PDFTools::StandardAESDecrypt
-PDFTools::StandardAESDecrypt::StandardAESDecrypt(const Ref &objref,const string &key)
+PDFTools::StandardAESDecrypt::StandardAESDecrypt(const string &key)
+  : key(key)
 {
-  MD5 hash;
-  char buf[5];
-
-  hash.init();
-  hash.update(key);
-  buf[0]=(objref.ref)&0xff;
-  buf[1]=(objref.ref>>8)&0xff;
-  buf[2]=(objref.ref>>16)&0xff;
-  buf[3]=(objref.gen)&0xff;
-  buf[4]=(objref.gen>>8)&0xff;
-  hash.update(buf,5);
-  hash.update("sAlT",4);
-  objkey.resize(16);
-  hash.finish(&objkey[0]);
 }
 
 void PDFTools::StandardAESDecrypt::operator()(std::string &dst,const std::string &src) const
@@ -169,7 +141,7 @@ void PDFTools::StandardAESDecrypt::operator()(std::string &dst,const std::string
   vector<char> iv;
   iv.resize(16);
   memcpy(&iv[0],src.data(),16*sizeof(char));
-  AESCBC cipher(objkey,false);
+  AESCBC cipher(key,false);
   cipher.decrypt(&dst[0],src.data()+16,dst.size(),&iv[0]);
 
   // unpad
@@ -338,30 +310,18 @@ void PDFTools::StandardAESDecrypt::AESInput::pos(long pos)
 
 Input *PDFTools::StandardAESDecrypt::getInput(Input &read_from) const
 {
-  return new AESInput(read_from,objkey);
+  return new AESInput(read_from,key);
 }
 // }}}
 
 // {{{ PDFTools::StandardAESEncrypt
-PDFTools::StandardAESEncrypt::StandardAESEncrypt(const Ref &objref,const string &key,const std::string &iv) : useiv(iv.empty()?RAND::get(16):iv)
+PDFTools::StandardAESEncrypt::StandardAESEncrypt(const string &key,const std::string &iv) 
+  : key(key),
+    useiv(iv.empty()?RAND::get(16):iv)
 {
   if (useiv.size()!=16) {
     throw invalid_argument("Bad iv size");
   }
-  MD5 hash;
-  char buf[5];
-
-  hash.init();
-  hash.update(key);
-  buf[0]=(objref.ref)&0xff;
-  buf[1]=(objref.ref>>8)&0xff;
-  buf[2]=(objref.ref>>16)&0xff;
-  buf[3]=(objref.gen)&0xff;
-  buf[4]=(objref.gen>>8)&0xff;
-  hash.update(buf,5);
-  hash.update("sAlT",4);
-  objkey.resize(16);
-  hash.finish(&objkey[0]);
 }
 
 void PDFTools::StandardAESEncrypt::operator()(std::string &dst,const std::string &src,const std::string &_iv) const
@@ -383,7 +343,7 @@ void PDFTools::StandardAESEncrypt::operator()(std::string &dst,const std::string
   }
   memcpy(&dst[0],iv,16*sizeof(char));
 
-  AESCBC cipher(objkey,true);
+  AESCBC cipher(key,true);
   cipher.encrypt(&dst[16],src.data(),blen,iv);
 
   char pad[16];
@@ -476,7 +436,7 @@ void PDFTools::StandardAESEncrypt::AESOutput::flush()
 
 Output *PDFTools::StandardAESEncrypt::getOutput(Output &write_to) const
 {
-  return new AESOutput(write_to,objkey,useiv);
+  return new AESOutput(write_to,key,useiv);
 }
 // }}}
 
@@ -487,13 +447,13 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
   // we already know: /Filter /Standard
 
   algo=dict.getInt(pdf,"V",0);
-  if ( (algo!=1)&&(algo!=2)&&(algo!=4)&&(algo!=5) ) {
+  if ( (algo<1)||(algo>5) ) {
     throw UsrError("Encryption algorithm %d not supported",algo);
   }
 
   len=40;
   encryptMeta=true; // TODO: respect this later on
-  if (algo==2) {  // ||(algo==3)
+  if ( (algo==2)||(algo==3) ) {
     len=dict.getInt(pdf,"Length",40);
   } else if ( (algo==4)||(algo==5) ) {
     encryptMeta=dict.getBool(pdf,"EncryptMetadata",true);
@@ -532,10 +492,18 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
 
   rev=dict.getInt(pdf,"R");
   if (rev==2) {
-    if (algo>=2) {
+    if (algo!=1) {
       throw UsrError("Bad Security Revision");
     }
-  } else if (rev==4) {
+    assert(len==40);
+  } else if (rev==3) {
+    if ( (algo!=2)&&(algo!=3) ) {
+      throw UsrError("Bad Security Revision");
+    }
+    if (len>128) {
+      throw UsrError("Bad key length");
+    }
+  } else if (rev==4) { // AES or RC4 (or None) as CryptFilter
     if (algo!=4) {
       throw UsrError("Bad Security Revision");
     }
@@ -549,7 +517,7 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
     if (len!=256) {
       throw UsrError("Bad key length");
     }
-  } else if (rev!=3) {
+  } else {
     throw UsrError("SecurityHandler revision %d not supported",rev);
   }
 
@@ -1069,6 +1037,46 @@ Dict *PDFTools::StandardSecurityHandler::set_pw389(const string &owner_pw,const 
 }
 // }}}
 
+string PDFTools::StandardSecurityHandler::get_objkey(const Ref &ref,bool aes) // {{{ 
+{
+  assert(algo<5);
+  assert( (!aes)||(algo==4) );  // note that (algo==4)&&(!aes) is permissible
+
+  MD5 hash;
+  char buf[5];
+
+  hash.init();
+  hash.update(filekey);
+
+  if (algo==3) { // "unpublished algorithm"
+    buf[0]=((ref.ref)&0xff)^0xac;
+    buf[1]=((ref.gen)&0xff)^0x96;
+    buf[2]=((ref.ref>>8)&0xff)^0x69;
+    buf[3]=((ref.gen>>8)&0xff)^0xca;
+    buf[4]=((ref.ref>>16)&0xff)^0x35;
+  } else {
+    buf[0]=(ref.ref)&0xff;
+    buf[1]=(ref.ref>>8)&0xff;
+    buf[2]=(ref.ref>>16)&0xff;
+    buf[3]=(ref.gen)&0xff;
+    buf[4]=(ref.gen>>8)&0xff;
+  }
+  hash.update(buf,5);
+  if ( (algo==3)||(aes) ) { 
+    hash.update("sAlT",4);
+  }
+
+  string ret(16,0);
+  hash.finish(&ret[0]);
+
+  if ((filekey.size()+5)<16) {
+    assert(algo!=4);
+    ret.resize(filekey.size()+5);
+  }
+  return ret;
+}
+// }}}
+
 Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm)
 {
   if ( (cfm<0)||(cfm>Eff) ) {
@@ -1077,21 +1085,24 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   if (filekey.empty()) { // not authenticated
     return NULL;
   }
-  if (algo==4) { // using crypt filter
+  if (algo>=4) { // using crypt filter
     const CryptFilter &cf=modecf[cfm];
     if (cf.len==-1) { // identity
       return NULL;
     } else if (cf.method==CryptFilter::V2) {
-      return new StandardRC4Crypt(ref,filekey);
-    } else if ( (cf.method==CryptFilter::AESV2)||
-                (cf.method==CryptFilter::AESV3) ) {
-      return new StandardAESDecrypt(ref,filekey);
+      return new StandardRC4Crypt(get_objkey(ref,false));
+    } else if (cf.method==CryptFilter::AESV2) {
+      return new StandardAESDecrypt(get_objkey(ref,true));
+    } else if (cf.method==CryptFilter::AESV3) {
+      assert(filekey.size()==256);
+      return new StandardAESDecrypt(filekey);
     } else {
       fprintf(stderr,"WARNING: /None decryption untested\n");
       return NULL;
     }
   }
-  return new StandardRC4Crypt(ref,filekey);
+  return new StandardRC4Crypt(get_objkey(ref,false));
 }
 
 // }}}
+
