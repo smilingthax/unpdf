@@ -48,7 +48,7 @@ namespace PDFTools {
   };
   class InStream : public Object {
   public:
-    InStream(PDF &pdf,Dict *sdict,SubInput *read_from,const Ref *decryptref=NULL); // moves from >sdict // takes >read_from
+    InStream(PDF *pdf,Dict *sdict,SubInput *read_from,const Ref *decryptref=NULL); // moves from >sdict // takes >read_from
     ~InStream();
 
     const Dict &getDict() const;
@@ -187,7 +187,7 @@ namespace PDFTools {
     StandardSecurityHandler *security; // for now...
     Ref encryptref;
   protected:
-    void read_xref_trailer(ParsingInput &pi);
+    void read_trailer(ParsingInput &pi);
   private:
     PDF(const PDF &);
     const PDF &operator=(const PDF &);

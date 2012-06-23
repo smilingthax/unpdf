@@ -71,56 +71,51 @@ Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *str_decrypt) // 
 }
 // }}}
 
-Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref) // {{{
+Object *PDFTools::Parser::parseObj(PDF *pdf,SubInput &in,const Ref *ref) // {{{
 {
-  long startpos=in.basepos();
-
+  long startpos=in.basepos(); // only for parse errors; must be called on SubInput
+ 
   auto_ptr<Decrypt> str_decrypt;
-  if (ref) {
-    str_decrypt.reset(pdf.getStrDecrypt(*ref));
+  if ( (pdf)&&(ref) ) {
+    str_decrypt.reset(pdf->getStrDecrypt(*ref));
   }
 
   ParsingInput psi(in);
-  try {
-    int resno=psi.readUInt();
-    psi.skip(true);
-    int resgen=psi.readUInt();
-    psi.skip(true);
-    if (!psi.next("obj")) {
-      throw UsrError("Not a valid object");
-    }
-    if (  (ref)&&( (resno!=ref->ref)||(resgen!=ref->gen) )  ) {
-      throw UsrError("Corrupt xref for object");
-    }
-  } catch (UsrError &uex) {
-    if (ref) {
-      throw UsrError("%s at %ld for %d %d R",uex.what(),startpos,ref->ref,ref->gen);
-    } else {
-      throw UsrError("%s at %ld",uex.what(),startpos);
-    }
-  }
+  parseObjNum(psi,startpos,ref);
+
   auto_ptr<Object> ret(Parser::parse(psi,str_decrypt.get()));
   if (!ret.get()) { // no more input
     return NULL;
   }
   Dict *dictval=dynamic_cast<Dict *>(ret.get());
+  long streamstart=-1,streamend=-1;
   if (dictval) { // check for stream
     psi.skip(false);
     if (psi.next("stream")) {
       if ( (!psi.next("\r\n"))&&(!psi.next('\n')) ) {
         throw UsrError("Linebreak expected after \"stream\"");
       }
-      in.pos(psi.pos()); // resync subinput with parsing input // or: psi.pos(psi.pos());
-      long streamstart=in.basepos();
-      long sstart=in.pos(); // TODO: eliminate need for both >streamstart and >sstart
 
-      int length=dictval->getInt(pdf,"Length");
+      streamstart=psi.pos();
+
+      int length;
+      if (!pdf) { // i.e. must be direct
+        const Object *obj=dictval->find("Length");
+        const NumInteger *ival=dynamic_cast<const NumInteger *>(obj);
+        if (!ival) {
+          throw UsrError("/%s is not a direct Integer","Length");
+        }
+        length=ival->value();
+      } else {
+        // this might reposition
+        length=dictval->getInt(*pdf,"Length");
+      }
   if (dictval->find("F")) {
     printf("WARNING: external stream file not yet supported\n");
   }
 
-      long streamend=streamstart+length;
-      psi.pos(sstart+length);
+      streamend=streamstart+length;
+      psi.pos(streamend);
       
       // skip eol
       char buf[2];
@@ -134,11 +129,6 @@ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref) // {{{
       if (!psi.next("endstream")) {
         throw UsrError("\"endstream\" expected at %ld",streamend);
       }
-      long svp=psi.pos(); // save position // TODO
- // TODO  pdf.getEFFDecrypt() ... /EmbeddedFile... if (*ref) ...
-//      ret.reset(new InStream(pdf,dictval,new SubInput(pdf.read_base,streamstart,streamend),ref.release(),pdf.getEffDecrypt(*ref)));
-      ret.reset(new InStream(pdf,dictval,new SubInput(pdf.read_base,streamstart,streamend),ref));
-      psi.pos(svp); // restore position
     }
   }
   psi.skip(false);
@@ -150,7 +140,38 @@ Object *PDFTools::Parser::parseObj(PDF &pdf,SubInput &in,const Ref *ref) // {{{
     }
   }
 
+  if ( (dictval)&&(streamstart!=-1) ) { // stream part 2
+// TODO  pdf->getEFFDecrypt() ... /EmbeddedFile... if (*ref) ...
+//  ret.reset(new InStream(pdf,dictval,new SubInput(in,streamstart,streamend),ref.release(),pdf->getEffDecrypt(*ref)));
+    // Fortunately the only real user is pdf.getObject
+    ret.reset(new InStream(pdf,dictval,new SubInput(in,streamstart,streamend),ref));
+  }
+
   return ret.release();
+}
+// }}}
+
+// Note: we /could/ use resno and resgen for decryption, if ref not given ...
+void PDFTools::Parser::parseObjNum(ParsingInput &in,long startpos,const Ref *ref) // {{{
+{
+  try {
+    int resno=in.readUInt();
+    in.skip(true);
+    int resgen=in.readUInt();
+    in.skip(true);
+    if (!in.next("obj")) {
+      throw UsrError("Not a valid object");
+    }
+    if (  (ref)&&( (resno!=ref->ref)||(resgen!=ref->gen) )  ) {
+      throw UsrError("Corrupt xref for object");
+    }
+  } catch (UsrError &uex) {
+    if (ref) {
+      throw UsrError("%s at %ld for %d %d R",uex.what(),startpos,ref->ref,ref->gen);
+    } else {
+      throw UsrError("%s at %ld",uex.what(),startpos);
+    }
+  }
 }
 // }}}
 
@@ -377,6 +398,7 @@ pair<int,long> PDFTools::Parser::read_pdf(Input &fi) // {{{
   int rlen=fi.read(buf,1024);
   buf[rlen]=0;
 
+  // TODO? also check for %PS-Adobe-N.n PDF-M.m  (only impl note for acro)
   char *tmp=strstr(buf,"%PDF-");
   if ( (!tmp)||(rlen-(tmp-buf)<8)||(!isdigit(tmp[5]))||(tmp[6]!='.')||(!isdigit(tmp[7])) ) {
     throw UsrError("No pdf version");

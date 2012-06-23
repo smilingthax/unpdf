@@ -222,6 +222,7 @@ namespace PDFTools {
   };
   class SubInput : public Input {
   public:
+    // endpos can be -1
     SubInput(Input &read_from,long startpos,long endpos);
 
     bool empty() const;

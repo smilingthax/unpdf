@@ -240,6 +240,7 @@ void PDFTools::FILEOutput::flush()
 }
 // }}}
 
+// FIXME: rework as tokenizer
 // {{{ PDFTools::ParsingInput
 PDFTools::ParsingInput::ParsingInput(Input &read_from) : read_from(read_from)
 {
@@ -310,6 +311,7 @@ int PDFTools::ParsingInput::pread(char *buf,int len)
   return res;
 }
 
+// TODO FIXME: this is a classical tokenizer
 std::pair<const char *,int> PDFTools::ParsingInput::pread_to_delim(bool include_ws)
 {
 //  ??? = ignore leading ws? ... prepos 
@@ -548,17 +550,18 @@ int PDFTools::ParsingInput::read_escape() // {{{
 
 // {{{ PDFTools::SubInput
 PDFTools::SubInput::SubInput(Input &_read_from,long _startpos,long _endpos) 
-    : read_from((dynamic_cast<SubInput *>(&_read_from)==0)?_read_from:dynamic_cast<SubInput &>(_read_from).read_from),startpos(_startpos),endpos(_endpos)
+    : read_from((dynamic_cast<SubInput *>(&_read_from)==0)?_read_from:dynamic_cast<SubInput &>(_read_from).read_from),
+      startpos(_startpos),
+      endpos(_endpos)
 {
   SubInput *rf=dynamic_cast<SubInput*>(&_read_from);
   if (rf) { // special case: SubInput of SubInput
     startpos+=rf->startpos;
-    if (rf->endpos!=-1) {
-      if (endpos!=-1) {
-        endpos+=rf->endpos;
-      }
-    } else {
-      endpos=-1;
+    if (endpos!=-1) {
+      endpos+=rf->startpos;
+    }
+    if ( (rf->endpos!=-1)&&(rf->endpos<endpos) ) {
+      startpos=-1;
     }
   }
   pos(0);
@@ -604,7 +607,7 @@ void PDFTools::SubInput::pos(long pos)
       throw UsrError("Not supported"); // TODO?
     }
     pos+=endpos;
-  } else {
+  } else if (startpos>=0) {
     pos+=startpos;
   }
   if (  (pos<startpos)||( (endpos>=0)&&(pos>endpos) )  ) {

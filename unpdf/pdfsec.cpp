@@ -1117,6 +1117,7 @@ string PDFTools::StandardSecurityHandler::get_objkey(const Ref &ref,bool aes) //
 // }}}
 
 // TODO: allow non-/Identity Crypt filters
+// pdf17_errata prescribes a few CF names for acro compatibility!
 Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm,const char *cryptname) // {{{
 {
   if ( (cfm<0)||(cfm>Eff) ) {
@@ -1127,7 +1128,10 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   }
   CryptFilter tmpcf,*cf=NULL;
   if (cryptname) {
-    /* TODO:   (we don't have pdf around!)
+    /* TODO:   (we don't have pdf around!)   
+               ... we could get to it
+               ... parseObj actually takes care that we /could/ seek  (for strings)
+               ... IFilter has also pdf around
     ObjectPtr cfptr=dict.get(pdf,"CF");
     get_cf(pdf,cfptr.get(),cryptname,tmpcf);
     cf=&tmpcf;

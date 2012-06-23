@@ -440,7 +440,7 @@ extern FILEOutput stdfo;
 // TODO: InStream(...,SubInput *read_from,...)  // where >read_from is a separate FILEInput ? open/close on demand?
 //        and does take ownership of read_from
 // {{{ PDFTools::InStream
-PDFTools::InStream::InStream(PDF &pdf,Dict *sdict,SubInput *read_from,const Ref *decryptref)
+PDFTools::InStream::InStream(PDF *pdf,Dict *sdict,SubInput *read_from,const Ref *decryptref)
   : readfrom(read_from),
     decrypt(NULL),filter(NULL)
 {
@@ -457,8 +457,8 @@ PDFTools::InStream::InStream(PDF &pdf,Dict *sdict,SubInput *read_from,const Ref 
       cryptname=filter->hasCrypt();
     }
 
-    if (decryptref) {
-      decrypt=pdf.getStmDecrypt(*decryptref,cryptname); 
+    if ( (pdf)&&(decryptref) ) {
+      decrypt=pdf->getStmDecrypt(*decryptref,cryptname); 
     }
   } catch (...) {
     delete filter;
@@ -887,7 +887,7 @@ void PDFTools::OutPDF::write_trailer(const Ref &pgref)
 
   // write xref
   long xrpos=write_base.sum();
-  xref.print(write_base,false);
+  xref.print(write_base,false,true);
 
   // write trailer
   trdict.erase("Size");
