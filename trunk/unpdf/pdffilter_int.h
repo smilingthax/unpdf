@@ -94,7 +94,8 @@ namespace PDFTools {
     std::vector<unsigned char> line[2];
     unsigned char *lastline,*thisline;
     int cpos;
-    int width,color,bpp;
+    // int width,predictor;
+    int color,bpp;
     int pbyte,pshift;
     bool ispng;
   };
@@ -117,7 +118,8 @@ namespace PDFTools {
     std::vector<std::vector<unsigned char> > encd;
     unsigned char *lastline,*thisline;
     int cpos;
-    int width,color,bpp;
+    // int width;
+    int color,bpp,predictor;
     int pbyte,pshift;
     bool ispng;
   };

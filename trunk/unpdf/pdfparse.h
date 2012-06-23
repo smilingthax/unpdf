@@ -11,7 +11,9 @@ namespace PDFTools {
   namespace Parser {
     Object *parse(const char *string);
     Object *parse(ParsingInput &in,const Decrypt *str_decrypt=NULL); // NULL if no more input
-    Object *parseObj(PDF &pdf,SubInput &in,const Ref *ref=NULL); // obj matches >ref?
+    Object *parseObj(PDF *pdf,SubInput &in,const Ref *ref=NULL); // obj matches >ref? -- and needed for decrypt
+
+    void parseObjNum(ParsingInput &in,long startpos,const Ref *ref=NULL); // obj matches >ref?
 
     Object *parseNum(ParsingInput &in); // int or float or ref
     String *parseString(ParsingInput &in,const Decrypt *str_decrypt=NULL);

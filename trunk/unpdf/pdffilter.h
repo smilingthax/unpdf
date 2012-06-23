@@ -16,7 +16,7 @@ namespace PDFTools {
   };
   class IFilter : public Filter {
   public:
-    IFilter(PDF &pdf,const Object &filterspec,const Object *decode_params);
+    IFilter(PDF *pdf,const Object &filterspec,const Object *decode_params);
     ~IFilter();
 
     InputPtr open(Input *read_from,bool take); // TODO ... Decrypt * // StandardSecurityHandler * ... (key) ...

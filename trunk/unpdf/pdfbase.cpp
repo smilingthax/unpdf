@@ -417,6 +417,18 @@ Array *PDFTools::Array::getNums(const vector<float> &nums)
   return ret.release();
 }
 
+int PDFTools::Array::getUInt_D(int pos) const 
+{ 
+  if ( (pos<0)||(pos>=(int)arvec.size()) ) {
+    throw UsrError("Bad index for array: %d",pos);
+  }
+  const NumInteger *ival=dynamic_cast<const NumInteger *>(arvec[pos].obj);
+  if ( (!ival)||(ival->value()<0) ) {
+    throw UsrError("array pos %d is not an unsigned integer",pos);
+  }
+  return ival->value();
+}
+
 vector<float> PDFTools::Array::getNums(PDF &pdf,int num) const
 {
   if ((int)arvec.size()!=num) {
@@ -854,7 +866,8 @@ ObjectPtr PDFTools::Dict::const_iterator::get(PDF &pdf) const
 }
 // }}}
 // }}}
- 
+
+// TODO: make hierarchical; TODO: subsections as separate vectors.
 // {{{ PDFTools::XRef
 PDFTools::XRef::XRef(bool writeable)
 {
@@ -895,13 +908,21 @@ void PDFTools::XRef::clear()
   xref.clear();
 }
 
-bool PDFTools::XRef::parse(ParsingInput &pi)
+bool PDFTools::XRef::parse(ParsingInput &pi,ParseMode mode) // {{{
 {
   assert(!xrefpos.empty()); // non-create-mode
-  // .. if a as_stream - TODO
   long xrp=pi.pos();
-  bool ret=read_xref(pi,xref);
+
+  bool ret=false;
+  if (mode==BOTH) {
+    ret=read_xref(pi,xref,false);
+  } else if (mode==AS_STREAM) {
+    ret=read_xref_stream(pi,xref);
+  } else if (mode==AS_TABLE) {
+    ret=read_xref(pi,xref,true);
+  }
   if (ret) {
+    // we need to store this xrefs position to generate accurate ends
     if (xrefpos[0]==-1) {
       xrefpos[0]=xrp;
     } else {
@@ -911,10 +932,15 @@ bool PDFTools::XRef::parse(ParsingInput &pi)
   generate_ends(); // TODO? optimize/ only once
   return ret;
 }
+// }}}
 
-bool PDFTools::XRef::read_xref(ParsingInput &fi,XRefVec &to) // {{{
+bool PDFTools::XRef::read_xref(ParsingInput &fi,XRefVec &to,bool ignore_stream) // {{{
 {
   if (!fi.next("xref")) {
+    if (!ignore_stream) {
+      // TODO?  reposition  ... done implictly there.
+      return read_xref_stream(fi,to);
+    }
     return false;
   }
   fi.skip();
@@ -957,6 +983,124 @@ bool PDFTools::XRef::read_xref(ParsingInput &fi,XRefVec &to) // {{{
 }
 // }}}
 
+// TODO?! don't create SubInput on top of ParsingInput...
+bool PDFTools::XRef::read_xref_stream(ParsingInput &fi,XRefVec &to) // {{ {
+{
+  SubInput si(fi,fi.pos(),-1);  // don't know the end...; this repositions.
+  // pdf==NULL: this requires /Filter and /DecodeParms to be direct.
+  // FIXME: this also reqires /Length to be direct -- but spec doesn't guarantee!
+  auto_ptr<Object> obj(Parser::parseObj(NULL,si,NULL));
+
+  InStream *stmval=dynamic_cast<InStream *>(obj.get());
+  if (!stmval) {
+    return false;
+  }
+
+  const Dict &dict=stmval->getDict();
+  // the following entries must be direct.
+
+  const Name *nval=dynamic_cast<const Name *>(dict.find("Type"));
+  if ( (!nval)||(strcmp(nval->value(),"XRef")!=0) ) {
+    throw UsrError("/Type not /XRef, as required");
+  }
+
+  const Array *wval=dynamic_cast<const Array *>(dict.find("W"));
+  if (!wval) {
+    throw UsrError("/W not an Array");
+  } else if (wval->size()!=3) {
+    throw UsrError("/W must have length 3");
+  }
+  int flens[3],flen=0;
+  for (int iA=0;iA<3;iA++) {
+    const NumInteger *ival=dynamic_cast<const NumInteger *>((*wval)[iA]);
+    if (!ival) {
+      throw UsrError("One of the /W entries is not an Integer");
+    }
+    flens[iA]=ival->value();
+    if ( (flens[iA]<0)||(flens[iA]>8) ) {
+      throw UsrError("Bad /W entry");
+    }
+    flen+=flens[iA];
+  }
+
+  const NumInteger *ival=dynamic_cast<const NumInteger *>(dict.find("Size"));
+  if (!ival) {
+    throw UsrError("/Size not an Integer");
+  }
+
+  int maxlen=ival->value();
+
+  Array adef;
+  const Array *aval=dynamic_cast<const Array *>(dict.find("Index"));
+  if (!aval) {
+    if (dict.find("Index")) {
+      throw UsrError("/Index has wrong type (not Array)");
+    }
+    adef.add(new NumInteger(0),true);
+    adef.add(new NumInteger(maxlen),true);
+    aval=&adef;
+  }
+
+  const int alen=aval->size();
+  if (alen%2!=0) {
+    throw UsrError("/Index has bad size");
+  }
+
+  InputPtr in=stmval->open();
+  char buf[3*8];
+  for (int iA=0;iA<alen;iA+=2) {
+    int offset=aval->getUInt_D(iA);
+    int len=aval->getUInt_D(iA+1);
+    
+    for (int iB=0;iB<len;iB++) {
+      // read one entry from decompressed stream.
+      int res=in.read(buf,flen);
+      if (res<flen) {
+        throw UsrError("Premature end of xref stream");
+      }
+
+      xre_t xr;
+      if (flens[0]>0) {
+        unsigned int type=readBinary(buf,flens[0]);
+        if (type>2) {
+          xr.type=xre_t::XREF_UNKNOWN;
+        } else {
+          xr.type=(xre_t::Type)type;
+        }
+      } else {
+        xr.type=xre_t::XREF_USED;
+      }
+  
+      if (flens[1]>0) {
+        xr.off=readBinary(buf+flens[0],flens[1]);
+      } else {
+        throw UsrError("No default value known");
+      }
+
+      if (flens[2]>0) {
+        xr.gen=readBinary(buf+flens[0]+flens[1],flens[2]);
+      } else if (xr.type==xre_t::XREF_USED) {
+        xr.gen=0;
+      } else {
+        throw UsrError("No default value known");
+      }
+
+      if (offset+iB>=(int)to.size()) {
+        to.resize(offset+iB+1,xre_t());
+      }
+      if (to[offset+iB].gen<xr.gen) {
+        to[offset+iB]=xr;
+      }
+    }
+  }
+print(stdfo,false,false);
+
+// TODO:  pdf.trdict._move_from(dict); ... parse_trailer_dict() ...
+
+  return false;
+}
+// }} }
+
 struct PDFTools::XRef::offset_sort { // {{{ [id] -> sort by [xref[id].off]
   offset_sort(const XRefVec &xref,const vector<int> &xrefpos)
              : xref(xref),xrefpos(xrefpos) {}
@@ -975,7 +1119,7 @@ struct PDFTools::XRef::offset_sort { // {{{ [id] -> sort by [xref[id].off]
 };
 // }}}
 
-void PDFTools::XRef::generate_ends()
+void PDFTools::XRef::generate_ends() // {{{
 {
   vector<int> offset_keyed(xref.size()+xrefpos.size());
 
@@ -997,8 +1141,10 @@ void PDFTools::XRef::generate_ends()
     }
   }
 }
+// }}}
 
-long PDFTools::XRef::readUIntOnly(const char *buf,int len)
+// zero padded!
+long PDFTools::XRef::readUIntOnly(const char *buf,int len) // {{{
 {
   long ret=0;
 
@@ -1011,24 +1157,57 @@ long PDFTools::XRef::readUIntOnly(const char *buf,int len)
   }
   return ret;
 }
+// }}}
 
-void PDFTools::XRef::print(Output &out,bool as_stream)
+long PDFTools::XRef::readBinary(const char *buf,int len) // {{{
+{
+  long ret=0;
+
+  for (int iA=0;iA<len;iA++) {
+    ret<<=8;
+    ret|=(unsigned char)buf[iA];
+  }
+  return ret;
+}
+// }}}
+
+// FIXME for stream.
+void PDFTools::XRef::print(Output &out,bool as_stream,bool master) // {{{
 {
   assert(!as_stream); // TODO
-  const char type_to_char[]={'f','n'}; 
+  static const char type_to_char[]={'f','n'};  // i.e. no compressed, not UNKNOWN
+//  static const char type_to_char[]={'f','n','c','x'};
 
   const int xrsize=xref.size();
-  out.printf("xref\n"
-             "0 %d\n",xrsize);
-  for (int iA=0;iA<xrsize;iA++) {
-    assert(xref[iA].gen!=-1);
-    assert(xref[iA].type<(int)sizeof(type_to_char));
-    if ( (xref[iA].type==xre_t::XREF_USED)&&(xref[iA].off==-1) ) {
-      printf("WARNING: preliminary ref %d not yet finished\n",iA);
+  out.puts("xref\n");
+ 
+  int pos=0,end=xrsize;
+
+  while (pos<xrsize) {
+    if (!master) {
+      for (;pos<xrsize;pos++) {
+        if (xref[pos].gen!=-1) {
+          break;
+        }
+      }
+      for (end=pos;end<xrsize;end++) {
+        if (xref[end].gen==-1) {
+          break;
+        }
+      }
     }
-    out.printf("%010u %05d %c \n",xref[iA].off,xref[iA].gen,type_to_char[xref[iA].type]); 
+    out.printf("%d %d\n",pos,end-pos);
+    for (;pos<end;pos++) {
+      assert(xref[pos].gen!=-1);
+      assert(xref[pos].type<(int)sizeof(type_to_char));
+      if ( (xref[pos].type==xre_t::XREF_USED)&&(xref[pos].off==-1) ) {
+        printf("WARNING: preliminary ref %d not yet finished\n",pos);
+      }
+      out.printf("%010u %05d %c \n",xref[pos].off,xref[pos].gen,type_to_char[xref[pos].type]); 
+    }
   }
 }
+// }}}
 
 size_t PDFTools::XRef::size() const 
 {
@@ -1059,14 +1238,26 @@ long PDFTools::XRef::getEnd(const Ref &ref) const
 }
 // }}}
 
+// FIXME: move trailer parsing to XRef  (trailer is "part of xref section")
+
 // {{{ PDFTools::PDF
 PDFTools::PDF::PDF(Input &read_base,int version,int xrefpos) : read_base(read_base),version(version),xref(false),security(NULL)
 {
-  // read xref and trailer
-  read_base.pos(xrefpos);
+  {
+    // read xref and trailer
+    read_base.pos(xrefpos);
 
-  ParsingInput pi(read_base);
-  read_xref_trailer(pi);
+    ParsingInput pi(read_base);
+    if (!xref.parse(pi)) {
+      throw UsrError("Could not read xref");
+    }
+
+// FIXME: only if hybrid or table:
+    // reference says: "trailer precedes startxref" and not "trailer follows xref";
+    // but even acrobat seems to just read on instead of skim backwards
+    pi.skip(false); // some pdfs require this
+    read_trailer(pi);
+  }
 
   // read rootdict
   const Object *pobj;
@@ -1101,12 +1292,12 @@ PDFTools::PDF::PDF(Input &read_base,int version,int xrefpos) : read_base(read_ba
     version=newver;
   }
 
-  // get Document ID
+  // get Document ID, not encrypted!
   ObjectPtr iobj=trdict.get(*this,"ID");
   if (!iobj.empty()) {
     const Array *aval=dynamic_cast<const Array *>(iobj.get());
     if ( (!aval)||(aval->size()!=2) ) {
-      throw UsrError("/ID is not an Array of length 2");
+      throw UsrError("/ID is not an Array of length 2"); // or not direct
     }
     fileid.first=aval->getString(*this,0);
     fileid.second=aval->getString(*this,1);
@@ -1115,7 +1306,10 @@ PDFTools::PDF::PDF(Input &read_base,int version,int xrefpos) : read_base(read_ba
   // Encryption
   pobj=trdict.find("Encrypt");
   if (pobj) {
-    encryptref=dynamic_cast<const Ref &>(*pobj); // throws if not a Ref
+    if (iobj.empty()) {
+      throw UsrError("/Encrypt requires /ID");
+    }
+    encryptref=dynamic_cast<const Ref &>(*pobj); // throws if not a Ref  (not sure ATM if this is really required by spec)
     robj.reset(fetch(encryptref));
 
     rdict=dynamic_cast<Dict *>(robj.get());
@@ -1126,6 +1320,7 @@ PDFTools::PDF::PDF(Input &read_base,int version,int xrefpos) : read_base(read_ba
     int filtertype=rdict->getNames(*this,"Filter",NULL,"Standard",NULL);
     assert(filtertype==1);
     //  throw UsrError("Unsupported Security Handler /%s",nval->value());
+
     security=new StandardSecurityHandler(*this,fileid.first,rdict);
   }
 
@@ -1182,9 +1377,9 @@ Object *PDFTools::PDF::getObject(const Ref &ref)
   SubInput si(read_base,start,xref.getEnd(ref));
 
   if ( (security)&&(ref==encryptref) ) {
-    return Parser::parseObj(*this,si,NULL); // decryption not applied for direct strings in /Encrypt
+    return Parser::parseObj(this,si,NULL); // decryption not applied for direct strings in /Encrypt
   }
-  return Parser::parseObj(*this,si,&ref);
+  return Parser::parseObj(this,si,&ref);
 }
 
 Object *PDFTools::PDF::fetch(const Ref &ref)
@@ -1220,15 +1415,8 @@ ObjectPtr PDFTools::PDF::fetch(const Object *obj)
   return ObjectPtr(const_cast<Object *>(obj),false);
 }
 
-void PDFTools::PDF::read_xref_trailer(ParsingInput &pi) // {{{
+void PDFTools::PDF::read_trailer(ParsingInput &pi) // {{{
 {
-  if (!xref.parse(pi)) {
-    throw UsrError("Could not read xref");
-  }
-
-  // reference says: "trailer precedes startxref" and not "trailer follows xref"; but even acrobat seems to do this one instead
-  pi.skip(false); // some pdfs require this
-
   if (!pi.next("trailer")) {
     throw UsrError("Could not read trailer");
   }

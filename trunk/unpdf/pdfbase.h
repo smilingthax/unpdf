@@ -156,6 +156,8 @@ namespace PDFTools {
     std::string getString(PDF &pdf,int pos) const;
     std::vector<float> getNums(PDF &pdf,int num) const;
 
+    int getUInt_D(int pos) const;
+
     void _move_from(Array *from);
     void _copy_from(const Array &from); // "deep copy"
   private:
@@ -258,8 +260,9 @@ namespace PDFTools {
     void setRef(const Ref &ref,long pos);
     void clear();
 
-    bool parse(ParsingInput &pi);
-    void print(Output &out,bool as_stream=false);
+    enum ParseMode { BOTH, AS_STREAM, AS_TABLE };
+    bool parse(ParsingInput &pi,ParseMode mode=BOTH);
+    void print(Output &out,bool as_stream=false,bool master=true);
     size_t size() const;
 
     long getStart(const Ref &ref) const; // -1 on error
@@ -268,11 +271,12 @@ namespace PDFTools {
     //
   public:
     static long readUIntOnly(const char *buf,int len);
+    static long readBinary(const char *buf,int len);
   private:
     struct xre_t {
       xre_t() : type(XREF_FREE),off(0),gen(-1),end(-1) {}
       xre_t(long pos) : type(XREF_USED),off(pos),gen(0),end(-1) {}
-      enum { XREF_FREE, XREF_USED } type; // see also XRef::print
+      enum Type { XREF_FREE=0, XREF_USED=1, XREF_COMPRESSED=2, XREF_UNKNOWN=3 } type; // see also XRef::print
       long off;
       int gen;
       long end; // internally for getEnd
@@ -282,7 +286,8 @@ namespace PDFTools {
     std::vector<int> xrefpos;
     // ... XRefMap xref_update; bool update_mode;
   protected:
-    bool read_xref(ParsingInput &fi,XRefVec &to);
+    bool read_xref(ParsingInput &fi,XRefVec &to,bool ignore_stream=false);
+    bool read_xref_stream(ParsingInput &fi,XRefVec &to);
     struct offset_sort;
     void generate_ends();
   };

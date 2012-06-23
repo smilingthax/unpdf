@@ -24,21 +24,34 @@
 using namespace PDFTools;
 using namespace std;
 
+// TODO: InStream should resolve (it's the dict owner)
+
 // helper to wrap a single value into an Array to simplify processing
 // resolve all immediate references 
-void fetch_in_array(Array &ret,PDF &pdf,const Object *obj) // {{{
+void fetch_in_array(Array &ret,PDF *pdf,const Object *obj) // {{{
 {
-  ObjectPtr optr=pdf.fetch(obj);
+  if (!pdf) { // can't resolve. this is for cases like XRef stream where spec forbids indirect references.
+    const Array *aval=dynamic_cast<const Array *>(obj);
+    if (aval) {
+      for (int iA=0;iA<(int)aval->size();iA++) {
+        ret.add((*aval)[iA],false);
+      }
+    } else {
+      ret.add(obj,false);
+    }
+    return;
+  }
+  ObjectPtr optr=pdf->fetch(obj);
   Array *aval=dynamic_cast<Array *>(optr.get());
   if (aval) {
     if (optr.owns()) { // may modify -> take ownership
       for (int iA=0;iA<(int)aval->size();iA++) {
-        ObjectPtr oqtr=aval->getTake(pdf,iA);
+        ObjectPtr oqtr=aval->getTake(*pdf,iA);
         ret.add(oqtr.release(),oqtr.owns());
       }
-    } else { // may not modify, but resolve. Ownership of direct objects stays at >obj !!! (long enough lifetime?)
+    } else { // may not modify, but resolve. Ownership of direct objects stays at >obj !!! (long enough lifetime: yes, InStream owns the parent dict)
       for (int iA=0;iA<(int)aval->size();iA++) {
-        ObjectPtr oqtr=aval->get(pdf,iA);
+        ObjectPtr oqtr=aval->get(*pdf,iA);
         ret.add(oqtr.release(),oqtr.owns());
       }
     }
@@ -49,7 +62,7 @@ void fetch_in_array(Array &ret,PDF &pdf,const Object *obj) // {{{
 // }}}
 
 // TODO: resolve 
-const Dict *resolve_dict(const Dict *dict,PDF &pdf,bool owns) // {{ {
+const Dict *resolve_dict(const Dict *dict,PDF *pdf,bool owns) // {{ {
 {
 /*
   if (!dict) ...
@@ -64,6 +77,7 @@ const Dict *resolve_dict(const Dict *dict,PDF &pdf,bool owns) // {{ {
     }
   }
 */
+  return NULL;
 }
 // }} }
 
@@ -89,7 +103,7 @@ int writefunc_Output(void *user,unsigned char *buf,int len)
 // }}}
 
 // {{{ PDFTools::IFilter
-PDFTools::IFilter::IFilter(PDF &pdf,const Object &filterspec,const Object *decode_params)
+PDFTools::IFilter::IFilter(PDF *pdf,const Object &filterspec,const Object *decode_params)
   : latein(NULL,false),
     cryptname(NULL)
 {
@@ -146,7 +160,7 @@ void PDFTools::IFilter::init(const Array &filterspec,const Array &decode_params,
     }
 
     if (strcmp(nval->value(),"Crypt")==0) {
-      if (iA!=len-1) {
+      if (iB!=0) {
         throw UsrError("Crypt filter must be first");
       }
       // special handling
@@ -682,11 +696,12 @@ void A85Filter::makeOutput(OFilter &filter)
 
 // {{{ Pred{Input,Output}
 // {{{ PDFTools::PredInput
-PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpp,int predictor) :
-  read_from(read_from),
-  pbyte((color*bpp+7)/8),
-  pshift((color*bpp)%8),
-  ispng(predictor>=10)
+PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpp,int predictor) 
+  : read_from(read_from),
+    color(color),bpp(bpp),
+    pbyte((color*bpp+7)/8),
+    pshift((color*bpp)%8),
+    ispng(predictor>=10)
 {
   const int bwidth=(color*bpp*width+7)/8;
   try {
@@ -795,13 +810,13 @@ int PDFTools::PredInput::read(char *buf,int len)
       len-=clen;
     }
     if (ispng) {
+      swap(thisline,lastline);
       int res=read_from->read((char *)thisline+pbyte-1,line[0].size()-pbyte+1);
       if (res==0) {
         return olen;
       } else if (res!=(int)line[0].size()-pbyte+1) {
         throw UsrError("Incomplete line");
       }
-      swap(thisline,lastline);
       const char pred=thisline[pbyte-1];
       thisline[pbyte-1]=0;
       png_decode(pred);
@@ -816,7 +831,7 @@ int PDFTools::PredInput::read(char *buf,int len)
     }
     cpos=pbyte;
   }
-  return len;
+  return olen;
 }
 
 long PDFTools::PredInput::pos() const
@@ -841,18 +856,24 @@ void PDFTools::PredInput::pos(long pos)
 // }}}
 
 // {{{ PDFTools::PredOutput
-PDFTools::PredOutput::PredOutput(Output *write_to,int width,int color,int bpp,int predictor) :
-  write_to(write_to),
-//  width(width),
-  color(color),bpp(bpp),
-  pbyte((color*bpp+7)/8),
-  pshift((color*bpp)%8),
-  ispng(predictor>=10)
+PDFTools::PredOutput::PredOutput(Output *write_to,int width,int color,int bpp,int predictor)
+  : write_to(write_to),
+//    width(width),
+    color(color),bpp(bpp),predictor(predictor),
+    pbyte((color*bpp+7)/8),
+    pshift((color*bpp)%8),
+    ispng(predictor>=10)
 {
   const int bwidth=(color*bpp*width+7)/8;
   try {
     assert(write_to);
     assert(  (predictor==2)||( (predictor>=10)&&(predictor<=15) )  );
+
+    this->predictor=16; // special internal value: find optimum for each row
+/* TODO
+    if (bpp<8) { // fixed
+      this->predictor=10;
+    } */
 
     line[0].resize(bwidth+pbyte,0);
     thisline=&line[0][0];
@@ -961,15 +982,13 @@ void PDFTools::PredOutput::png_encode(unsigned char *dest,int type)
 
 int PDFTools::PredOutput::png_encode()
 {
-/* TODO
-  if (bpp<8) { // fixed
-    const int type=0;
+  if (predictor!=16) {
+    const int type=predictor-10;
     if (type!=0) {
       png_encode(&encd[type-1][1],type);
     }
     return type;
   }
-*/
   unsigned char *d1=&encd[0][1]+line[0].size()-pbyte,
                 *d2=&encd[1][1]+line[0].size()-pbyte,
                 *d3=&encd[2][1]+line[0].size()-pbyte,
