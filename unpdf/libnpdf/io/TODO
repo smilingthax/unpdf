@@ -1,0 +1,4 @@
+- redo remaining code in pdfio
+
+- add  name/description  getter to Input+Output base
+

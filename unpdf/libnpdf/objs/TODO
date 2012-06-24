@@ -1,0 +1,29 @@
+
+- rework ObjectPtr
+  - use c++11  (also Array, Dict)
+  - move convenience from Dict(Array) there
+  - "allow null"   (and isnull)
+  - handles dyn casts?
+  (incorporate pdf?  --good for checks, bad for seek visibility)
+
+- move Name::FreeT  to "global"  base/types.h
+  - refacator other similar cases
+  -  also together with const Object * + bool take
+
+- remove number of try/catch uses
+
+- better handling of String::as_hex ?!
+
+- prettier printing for Array, Dict
+
+- fix  _move_from  _copy_from
+
+- Array::ArrayType 
+  introduce move semantics
+  add ~ArrayType, this makes ~Array uncessesary
+
+- fix Dict::add  to not create duplicates!
+
+- can we find a solution for ArrayType, DictType and ObjectPtr "at once"?
+
+- add encrypt capability to string (currently only decrypt)

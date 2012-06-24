@@ -1,13 +1,11 @@
-SOURCES=main.cpp pdfbase.cpp pdfio.cpp pdfparse.cpp pdffilter.cpp pdfcrypt.cpp pdfcomp.cpp pdfsec.cpp pdfcols.cpp
+SOURCES=main.cpp 
 EXEC=unpdf
-LIB=libnpdf.a
 SUBDIRS=sel merge pdfget pdfput img
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g
-LDFLAGS=-lz -lcrypto -ljpeg
+LDFLAGS=libnpdf/libnpdf.a -lz -lcrypto -ljpeg 
 
 CPPFLAGS+=-I../g4coder -I../lzwcoder -I../lsyscpp
-ADDOBJS+=../g4coder/g4code.o ../lzwcoder/lzwcode.o ../lsyscpp/exception.o ../lsyscpp/filesystem.o
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\
@@ -17,29 +15,31 @@ DEPENDS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).d,\
         $(filter-out %.o,""\
 $(SOURCES))))
 
-all: $(EXEC) $(LIB)
+all: libnpdf $(EXEC)
 ifneq "$(MAKECMDGOALS)" "clean"
   -include $(DEPENDS)
 endif 
 
 clean:
-	rm -f $(EXEC) $(LIB) $(OBJECTS) $(DEPENDS) 
+	rm -f $(EXEC) $(OBJECTS) $(DEPENDS) 
+	@$(MAKE) -C libnpdf clean
 
 %.d: %.c
 	@$(SHELL) -ec '$(CXX) -MM $(CPPFLAGS) $< \
-                      | sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@;\
+                      | sed '\''s|\($*\)\.o[ :]*|\1.o $@ : |g'\'' > $@;\
                       [ -s $@ ] || rm -f $@'
 
 %.d: %.cpp
 	@$(SHELL) -ec '$(CXX) -MM $(CPPFLAGS) $< \
-                      | sed '\''s/\($*\)\.o[ :]*/\1.o $@ : /g'\'' > $@;\
+                      | sed '\''s|\($*\)\.o[ :]*|\1.o $@ : |g'\'' > $@;\
                       [ -s $@ ] || rm -f $@'
 
-$(EXEC): $(OBJECTS)
-	$(CXX) -o $@ $^ $(LDFLAGS) $(ADDOBJS)
+.PHONY: libnpdf
+libnpdf:
+	@$(MAKE) -C $@
 
-$(LIB): $(filter-out main.o,$(OBJECTS))
-	$(AR) rcu $@ $^ $(ADDOBJS)
+$(EXEC): $(OBJECTS)
+	$(CXX) -o $@ $^ $(LDFLAGS)
 
 subdirs: $(SUBDIRS)
 .PHONY: $(SUBDIRS)

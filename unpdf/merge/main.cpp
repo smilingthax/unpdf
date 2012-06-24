@@ -1,7 +1,8 @@
 #include <assert.h>
 #include <stdlib.h>
-#include "pdfbase.h"
-#include "pdfparse.h"
+#include "libnpdf/io/file.h"
+#include "libnpdf/pdf/pdf.h"
+#include "libnpdf/pdf/outpdf.h"
 #include "exception.h"
 #include "cmdline.h"
 #include <stdio.h>

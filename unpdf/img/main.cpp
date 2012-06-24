@@ -2,8 +2,12 @@
 #include <leptonica/allheaders.h>
 #include <assert.h>
 #include <stdlib.h>
-#include "pdfbase.h"
-#include "pdfparse.h"
+#include "libnpdf/io/file.h"
+#include "libnpdf/io/ptr.h"
+#include "libnpdf/pages/page.h"
+#include "libnpdf/stream/pdfcomp.h" // FIXME
+#include "libnpdf/pdf/pdf.h"
+#include "libnpdf/util/util.h"
 #include "exception.h"
 
 using namespace std;

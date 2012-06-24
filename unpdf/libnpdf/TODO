@@ -1,0 +1,10 @@
+
+- use MemInput(const char *) for decrypting strings?
+
+- fix protected --> private
+
+- fix Makefile:  dependency shall not try to build .o from master dir, but only ever via subdir make
+
+- create top-level include files
+  - remove */all.h ?
+

@@ -1,8 +1,10 @@
 #include <assert.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include "pdfbase.h"
-#include "pdfparse.h"
+#include "libnpdf/io/file.h"
+#include "libnpdf/pages/page.h"
+#include "libnpdf/pdf/pdf.h"
+#include "libnpdf/pdf/outpdf.h"
 #include "exception.h"
 
 using namespace std;

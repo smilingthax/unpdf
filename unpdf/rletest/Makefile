@@ -2,7 +2,7 @@ SOURCES=main.cpp gfxfiles.c
 EXEC=rletest
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
-LDFLAGS=-L../ -lnpdf -lcrypto -lz -ljpeg
+LDFLAGS=-L../libnpdf/ -lnpdf -lcrypto -lz -ljpeg
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\

@@ -2,7 +2,7 @@ SOURCES=main.cpp
 EXEC=pdfselect
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp/
-LDFLAGS=-L../ -lnpdf -lz -lcrypto -ljpeg
+LDFLAGS=-L../libnpdf/ -lnpdf -lz -lcrypto -ljpeg
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\
