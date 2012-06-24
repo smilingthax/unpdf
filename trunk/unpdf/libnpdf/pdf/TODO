@@ -1,0 +1,19 @@
+
+- only one PDF class in the future; 
+  maybe PDFWriter; probably PDFCopier
+    i.e. with OutPDF::remap_array / remap_dict
+
+- remove ObjectSet crazyness
+  - "makeIndirect" ... objectCache ...
+
+- move code out of PDF ctor
+- make security a unique_ptr
+
+- fix pdfcomp.cpp   (also affects stream/)
+
+- make "OutPDF" (or, what it will become) work with generic Output, not just FILEOutput
+
+- better output filter selecting, e.g. by giving OFilter a "preliminary" dictionary.
+  ? we do have the ability to use the dict from reading the pdf, but we want to change it!
+  and we have no good method to choose different filter for different objects (images, text, "by id", ...)
+    - maybe ObjectCopier helps?

@@ -2,8 +2,13 @@
 #include <string.h>
 #include <stdlib.h>
 #include <limits.h>
-#include "pdfbase.h"
-#include "pdfparse.h"
+#include "libnpdf/io/ptr.h"
+#include "libnpdf/io/file.h"
+#include "libnpdf/stream/pdfcomp.h" // FIXME
+#include "libnpdf/pages/page.h"
+#include "libnpdf/pdf/pdf.h"
+#include "libnpdf/pdf/outpdf.h"
+#include "libnpdf/util/util.h"
 #include "exception.h"
 #include "cmdline.h"
 #include <stdarg.h>
@@ -12,7 +17,9 @@
 using namespace std;
 using namespace PDFTools;
 
-extern FILEOutput stdfo;
+namespace PDFTools {
+  extern FILEOutput stdfo;
+}
 
 class PG_Cmdline : public Cmdline { // {{{
 public:

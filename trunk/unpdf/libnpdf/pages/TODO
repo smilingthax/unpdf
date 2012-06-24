@@ -1,0 +1,11 @@
+
+- move Rect to the appropriate place
+  - better impl idea for "complex" objects build from simples ones
+    [i.e. the ctor and toArray() ]
+    somehow we like to "move memory" -- if possible (e.g. keep Array as cache or "extend" Array)
+
+- PagesTree uses std::map ... -> ObjectCopier
+
+- fix Page * usage in PagesTree (c++11)
+
+- factor out pages tree parser from PagesTree

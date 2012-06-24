@@ -1,0 +1,4 @@
+
+- pimpl with std::unique_ptr ?
+
+[- rename pimpl to just impl_t?]

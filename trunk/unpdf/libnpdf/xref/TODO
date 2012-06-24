@@ -1,0 +1,6 @@
+
+- make xref hierarchical
+- subsections as separate vectors
+
+- move trailer parsing from PDF to XRef  
+  (trailer is "part of xref section")

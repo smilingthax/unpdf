@@ -3,11 +3,24 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <memory>
+#include "libnpdf/io/file.h"
+#include "libnpdf/io/mem.h"
+#include "libnpdf/stream/pdfcomp.h" // FIXME
+#include "libnpdf/filter/pdffilter_int.h" // FIXME
+#include "libnpdf/security/aescrypt.h"
+#include "libnpdf/security/rc4crypt.h"
+#include "libnpdf/util/util.h"
+#include "libnpdf/color/pdfcols.h" // FIXME
+#include "libnpdf/pages/page.h"
+#include "libnpdf/pdf/outpdf.h"
+/*
 #include "pdfbase.h"
 #include "pdfparse.h"
 #include "pdffilter_int.h"
 #include "pdfsec.h"
 #include "pdfcols.h"
+*/
 #include "exception.h"
 
 extern "C" {
@@ -380,7 +393,7 @@ free(mem);
         copy(fo,rfi);
       } else if (mode==100) {
         Ref r;
-        StandardAESDecrypt sec(r,"aaaaaaaaaaaaaaaa");
+        StandardAESDecrypt sec("aaaaaaaaaaaaaaaa");
         auto_ptr<Input> rfi(sec.getInput(fi));
         copy(fo,*rfi);
       } else {
@@ -410,7 +423,7 @@ free(mem);
         rfo.flush();
       } else if (mode==100) {
         Ref r;
-        StandardAESEncrypt sec(r,"aaaaaaaaaaaaaaaa");
+        StandardAESEncrypt sec("aaaaaaaaaaaaaaaa");
         auto_ptr<Output> rfo(sec.getOutput(fo));
         copy(*rfo,fi);
         rfo->flush();

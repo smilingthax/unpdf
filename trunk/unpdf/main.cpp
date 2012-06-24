@@ -1,15 +1,19 @@
 /*
  * pdf stuff
- * (c) 2006(texttool),2007,2008 Tobias Hoffmann
+ * (c) 2006-2012 Tobias Hoffmann
  */
 #include <stdio.h>
 #include <stdexcept>
 #include <string>
+#include <memory>
 #include <stdlib.h>
 #include <errno.h>
-#include "pdfio.h"
-#include "pdfbase.h"
-#include "pdfparse.h"
+#include "libnpdf/io/file.h"
+#include "libnpdf/io/ptr.h"
+#include "libnpdf/pdf/pdf.h"
+#include "libnpdf/pages/page.h"
+#include "libnpdf/stream/pdfcomp.h"
+#include "libnpdf/util/util.h"
 
 #include "exception.h"
 #include <assert.h>
@@ -17,14 +21,14 @@
 using namespace std;
 using namespace PDFTools;
 
-extern FILEOutput stdfo;
+namespace PDFTools {
+  extern FILEOutput stdfo;
+}
 
 /* TODO
  - remove clone() from Security / Decrypt
  (- PagesTree to write Pages with Inherited data as 6-tree)
 */
-
-
 
 #if 0
 // TODO: clone() for objects

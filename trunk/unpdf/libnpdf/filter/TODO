@@ -1,0 +1,4 @@
+
+- filter need rework
+
+- IDEA: split img-filters (i.e. needing external libs) from those, that do not.
