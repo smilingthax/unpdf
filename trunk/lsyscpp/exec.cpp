@@ -47,6 +47,7 @@ if (...child) {
 using namespace std;
 
 #include <stdio.h>
+#include <unistd.h>
 
 int Sys::do_exec(const char *execpath,const char **args)
 {
