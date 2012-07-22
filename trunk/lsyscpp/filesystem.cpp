@@ -18,11 +18,11 @@ FS_except::FS_except(int errnum) throw() : errnum(errnum)
   errtext=string(strerror(errnum));
 }
 
-// TODO: only linux(?) allows getcwd(NULL,0)
-#if !defined(_WIN32)&&!defined(__APPLE__)  // for now
+// TODO: ? only win32, linux, os x
+// win32: #include <direct.h>
 string FS::cwd() // {{{
 {
-  char *tmp=getcwd(NULL,0);
+  char *tmp=getcwd(NULL,0);  // win32: _getcwd
   if (!tmp) {
     throw FS_except(errno);
   }
@@ -31,7 +31,6 @@ string FS::cwd() // {{{
   return ret;
 }
 // }}}
-#endif
 
 string FS::basename(const string &filename) // {{{
 {
