@@ -28,7 +28,7 @@ clean:
 #	$(CXX) -o $@ $^ $(LDFLAGS) $(ADDOBJS)
 
 $(LIB): $(filter-out main.o,$(OBJECTS))
-	@rm $@    # linker
+	-@rm $@    # linker
 	$(AR) rcu $@ $^ $(ADDOBJS)
 
 .PHONY: $(SUBDIRS)
