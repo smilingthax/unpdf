@@ -3,6 +3,7 @@
 
 #include <string>
 #include <stdexcept>
+#include <unistd.h>
 
 class FS_except : public std::exception {
 public:
