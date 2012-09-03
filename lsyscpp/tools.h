@@ -179,8 +179,8 @@ inline std::string s_strtr(const std::string &string,const char **trFrom,const c
 
 inline char *a_pureascii(const char *string)
 {
-  static const char *trFrom[]={ "ä", "ö", "ü", "Ä", "Ö", "Ü", "ß"," ",NULL},
-                    *trTo[]  ={"ae","oe","ue","Ae","Oe","Ue","ss",NULL};
+  static const char *trFrom[]={ "\xe4", "\xf6", "\xfc", "\xc4", "\xd6", "\xdc", "\xdf"," ",NULL}, // latin1
+                    *trTo[]  ={   "ae",   "oe",   "ue",   "Ae",   "Oe",   "Ue",   "ss",NULL};
   return a_strtr(string,trFrom,trTo);
 }
 
