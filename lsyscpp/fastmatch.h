@@ -64,7 +64,7 @@ template<int N,int SIZE,typename Tstring,typename U> struct block_no { enum { be
   }; \
   template <> struct ssw_counter<__LINE__> { enum { block=ssw_counter<__LINE__-1>::block+1, base=ssw_counter<__LINE__-1>::base }; }; \
   template <int SIZE,typename Tstring,typename U> struct block_no<ssw_counter<__LINE__>::block,SIZE,Tstring,U> { \
-    enum { block=ssw_counter<__LINE__>::block, base=ssw_counter<__LINE__>::base, belse=false, \
+    enum { block=(int)ssw_counter<__LINE__>::block, base=ssw_counter<__LINE__>::base, belse=false, \
            left=ssw_treecalc<base+1,base+1+SIZE,block>::left, right=ssw_treecalc<base+1,base+1+SIZE,block>::right, \
            nextleft=(left<block)?(left+block)/2:base, nextright=(block+1<right)?(block+1+right)/2:base }; \
     inline static bool run(Tstring _buf,U user) { \
