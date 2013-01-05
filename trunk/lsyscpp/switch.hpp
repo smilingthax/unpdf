@@ -69,7 +69,7 @@ typename std::function<Signature>::result_type
   typedef typename std::function<Signature>::result_type RetType;
   auto cmp=[&comp](const KVT &a,const KVT &b){ return comp(a.first,b.first); };
   auto val=KVT(value,std::function<Signature>());
-  auto r=std::lower_bound(sws.begin(),sws.end(),val,cmp);
+  auto r=std::lower_bound(sws.begin(),sws.end(),val,cmp); // std::binary_search only returns bool...
   if ( (r!=sws.end())&&(!cmp(val,*r)) ) {
     return detail::call_it<RetType>(r->second,r->first);
   }
