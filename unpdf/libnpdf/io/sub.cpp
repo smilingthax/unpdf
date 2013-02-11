@@ -25,7 +25,7 @@ SubInput::SubInput(Input &_read_from,long _startpos,long _endpos)
   pos(0);
 }
 
-bool SubInput::empty() const 
+bool SubInput::empty() const
 {
   return (startpos==-1);
 }

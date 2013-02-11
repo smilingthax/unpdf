@@ -1,6 +1,10 @@
 
-- make xref hierarchical
+- make xref hierarchical - separate store from parser
 - subsections as separate vectors
 
-- move trailer parsing from PDF to XRef  
-  (trailer is "part of xref section")
+- handle /XRefStm in TABLE trailer
+
+- read_... can be static?
+
+- use UNKNOWN for "uninitialized" entries (those with gen==-1, currently)
+

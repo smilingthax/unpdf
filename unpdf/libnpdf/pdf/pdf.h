@@ -15,7 +15,7 @@ namespace PDFTools {
   class StandardSecurityHandler;
   class PDF {
   public:
-    PDF(Input &read_base,int version,int xrefpos);
+    PDF(Input &read_base,const Parser::Trailer &trailer);
     ~PDF();
 
     ObjectPtr fetch(const Object *obj); // throws if NULL!; if >obj a reference: fetch, otherwise return ObjectPtr(obj,false) TODO? bad const_cast
@@ -27,9 +27,9 @@ namespace PDFTools {
     Decrypt *getStrDecrypt(const Ref &ref,const char *cryptname=NULL);
     Decrypt *getEffDecrypt(const Ref &ref,const char *cryptname=NULL);
 
-  //private: 
+  //private:
     Input &read_base;
-  //private: 
+  //private:
     int version;
     XRef xref;
     Dict trdict;
@@ -39,8 +39,6 @@ namespace PDFTools {
     std::pair<std::string,std::string> fileid;
     StandardSecurityHandler *security; // for now...
     Ref encryptref;
-  protected:
-    void read_trailer(ParsingInput &pi);
   private:
     PDF(const PDF &);
     const PDF &operator=(const PDF &);
@@ -48,4 +46,4 @@ namespace PDFTools {
 
 } // namespace PDFTools
 
-#endif        
+#endif

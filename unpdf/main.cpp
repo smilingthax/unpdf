@@ -77,7 +77,7 @@ int main(int argc,char **argv)
         /Root
         /Encrypt
         /Info(opt) */
-   
+
 auto_ptr<Object> robj;
   /*     pages[0].Resources.XObject."front()".(This is our image)
   */
@@ -107,7 +107,7 @@ printf("\n");
   op.finish();
 }
 */
-      
+
 if (argc==3) {
   robj.reset(pdf->fetch(Ref(atoi(argv[2]),0)));
 } else 

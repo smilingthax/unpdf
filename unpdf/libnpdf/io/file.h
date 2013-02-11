@@ -21,7 +21,7 @@ namespace PDFTools {
   };
 
   class FILEOutput : public Output {
-  public: 
+  public:
     FILEOutput(FILE *f,bool take=false);
     FILEOutput(const char *filename);
     FILEOutput(const char *filename,FILE *_f); // e.g. (fn/NULL,stdout)

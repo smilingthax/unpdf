@@ -18,7 +18,7 @@ $(SOURCES))))
 all: libnpdf $(EXEC)
 ifneq "$(MAKECMDGOALS)" "clean"
   -include $(DEPENDS)
-endif 
+endif
 
 clean:
 	rm -f $(EXEC) $(OBJECTS) $(DEPENDS) 
