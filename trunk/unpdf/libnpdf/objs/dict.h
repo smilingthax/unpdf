@@ -44,7 +44,7 @@ namespace PDFTools {
     void add(const char *key,float value) { add(key,new NumFloat(value),true); }
     void add(const char *key,bool value) { add(key,new Boolean(value),true); }
     // these do not preserve Input position: !!!
-    void ensure(PDF &pdf,const char *key,const char *name); 
+    void ensure(PDF &pdf,const char *key,const char *name) const;
     ObjectPtr get(PDF &pdf,const char *key) const; // notfound: ObjectPtr.empty()
     int getInt(PDF &pdf,const char *key,bool *found=NULL) const; // found==NULL and not found -> throw
     int getInt(PDF &pdf,const char *key,int defval) const;
@@ -53,7 +53,7 @@ namespace PDFTools {
     int getNames(PDF &pdf,const char *key,const char *name0,const char *name1,.../*name1,...,NULL*/) const; // if not found: default=0, or throws if (name0==0); always throws on bad name
 
     std::string getString(PDF &pdf,const char *key) const;
-    // when found: ensures direct ... 
+    // when found: ensures direct ...
     bool getBool_D(const char *key,bool defval) const;
     int getInt_D(const char *key,int defval) const;
     const char *getName_D(const char *key) const; // or NULL
@@ -70,7 +70,7 @@ namespace PDFTools {
   private:
     unsigned int hash(const char *key) const;
     DictMap::iterator fnd(const char *key);
-    
+
     Dict(const Dict &);
     const Dict &operator=(const Dict &);
   };

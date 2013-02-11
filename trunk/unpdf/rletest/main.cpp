@@ -91,7 +91,7 @@ Image() */
 
 class Image : public OutStream {
 public:
-  Image(PDF &pdf,InStream *stm); // "takes" 
+  Image(PDF &pdf,InStream *stm); // "takes"
   Image(PDF &pdf,const InStream &stm); // copies
   ~Image();
 
@@ -105,7 +105,7 @@ private:
   int bpp;
   //  /Intent  name
   bool is_mask; // if (is_mask) -> bpp==1,
-  //  /Mask  stream or array  
+  //  /Mask  stream or array
   //  /Decode  array
   //  /Interpolate  bool(false)
   //  /Alternatives  array
@@ -145,7 +145,7 @@ Image::getDictInt(const char *key,bool reqd,set<const char *> *found)
 void Image::parse(PDF &pdf,const InStream &stm)
 {
   const Dict &dict=stm.getDict();
-  
+
   set<const char *> keys;
   for (Dict::const_iterator it=dict.begin();it!=dict.end();++it) {
     keys.insert(it->key());
@@ -161,7 +161,7 @@ void Image::parse(PDF &pdf,const InStream &stm)
 if (cs==Pattern) { throw }  ?? array
   bpp=dict.getInt(pdf,"BitsPerComponent");
   is_mask=dict.getBool("ImageMask",false);
-  
+
   if (is_mask) {
     .
     not
@@ -227,12 +227,12 @@ class InImage : public ObjectSet {
 public:
   Ref print(OutPDF &outpdf);
 
-  
+
 private:
   Input &read_from;
   int width,height;
   int bpp;
-  unsigned char 
+  unsigned char
 };
 
 Image::print(OutPDF &outpdf)

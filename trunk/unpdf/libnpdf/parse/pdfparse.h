@@ -33,7 +33,14 @@ namespace PDFTools {
     Array *parseArray(ParsingInput &in,const Decrypt *str_decrypt=NULL);
     Dict *parseDict(ParsingInput &in,const Decrypt *str_decrypt=NULL);
 
-    std::pair<int,long> read_pdf(Input &fi); // helper: returns (version,xrefpos)
+    struct Trailer {
+      Trailer(int version,long pos,long xrefpos)
+        : version(version),pos(pos),xrefpos(xrefpos) {}
+      int version;  // e.g. 14 for 1.4
+      long pos;     // start of trailer
+      long xrefpos; // startxref value
+    };
+    Trailer read_pdf(Input &fi); // helper
 
     inline int skip_eol(const char *buf) {
       if (*buf=='\n') {

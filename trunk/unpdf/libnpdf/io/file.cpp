@@ -8,7 +8,7 @@
 namespace PDFTools {
 
 // {{{ FILEInput
-FILEInput::FILEInput(FILE *f,bool take) 
+FILEInput::FILEInput(FILE *f,bool take)
   : f(f),
     ourclose(take)
 {
@@ -102,7 +102,7 @@ void FILEOutput::vprintf(const char *fmt,va_list ap)
 {
   int ret=vfprintf(f,fmt,ap);
   if (ret<0) {
-    throw FS_except(errno); // ? 
+    throw FS_except(errno); // ?
   }
   sumout+=ret;
 }
@@ -127,7 +127,7 @@ long FILEOutput::sum() const
 {
   long ret=ftell(f);
   if (ret==-1) { // fallback
-    return sumout; 
+    return sumout;
   }
   return ret;
 }

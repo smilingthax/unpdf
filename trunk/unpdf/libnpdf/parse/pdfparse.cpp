@@ -17,9 +17,10 @@
 #include "../pdf/pdf.h" // FIXME
 
 using namespace std;
-using namespace PDFTools;
 
-Object *PDFTools::Parser::parse(const char *string) // {{{
+namespace PDFTools {
+
+Object *Parser::parse(const char *string) // {{{
 {
   MemInput mn(string,strlen(string));
   ParsingInput pi(mn);
@@ -28,7 +29,7 @@ Object *PDFTools::Parser::parse(const char *string) // {{{
 }
 // }}}
 
-Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *str_decrypt) // {{{
+Object *Parser::parse(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   in.skip(false);
 
@@ -68,10 +69,10 @@ Object *PDFTools::Parser::parse(ParsingInput &in,const Decrypt *str_decrypt) // 
 }
 // }}}
 
-Object *PDFTools::Parser::parseObj(PDF *pdf,SubInput &in,const Ref *ref) // {{{
+Object *Parser::parseObj(PDF *pdf,SubInput &in,const Ref *ref) // {{{
 {
   long startpos=in.basepos(); // only for parse errors; must be called on SubInput
- 
+
   auto_ptr<Decrypt> str_decrypt;
   if ( (pdf)&&(ref) ) {
     str_decrypt.reset(pdf->getStrDecrypt(*ref));
@@ -99,21 +100,28 @@ Object *PDFTools::Parser::parseObj(PDF *pdf,SubInput &in,const Ref *ref) // {{{
       if (!pdf) { // i.e. must be direct
         const Object *obj=dictval->find("Length");
         const NumInteger *ival=dynamic_cast<const NumInteger *>(obj);
-        if (!ival) {
-          throw UsrError("/%s is not a direct Integer","Length");
+        if (ival) {
+          length=ival->value();
+        } else {
+          fprintf(stderr,"WARNING: /Length is not a direct Integer\n");
+          length=-1;
         }
-        length=ival->value();
       } else {
         // this might reposition
         length=dictval->getInt(*pdf,"Length");
       }
   if (dictval->find("F")) {
-    printf("WARNING: external stream file not yet supported\n");
+    fprintf(stderr,"WARNING: external stream file not yet supported\n");
   }
+
+      if (length<0) { // we can only skip the checks...  streamend==-1
+        ret.reset(new InStream(pdf,dictval,new SubInput(in,streamstart,streamend),ref));
+        return ret.release();
+      }
 
       streamend=streamstart+length;
       psi.pos(streamend);
-      
+
       // skip eol
       char buf[2];
       int res=psi.read(buf,2);
@@ -149,7 +157,7 @@ Object *PDFTools::Parser::parseObj(PDF *pdf,SubInput &in,const Ref *ref) // {{{
 // }}}
 
 // Note: we /could/ use resno and resgen for decryption, if ref not given ...
-void PDFTools::Parser::parseObjNum(ParsingInput &in,long startpos,const Ref *ref) // {{{
+void Parser::parseObjNum(ParsingInput &in,long startpos,const Ref *ref) // {{{
 {
   try {
     int resno=in.readUInt();
@@ -172,7 +180,7 @@ void PDFTools::Parser::parseObjNum(ParsingInput &in,long startpos,const Ref *ref
 }
 // }}}
 
-Object *PDFTools::Parser::parseNum(ParsingInput &in) // {{{  may return: NumFloat NumInt Ref
+Object *Parser::parseNum(ParsingInput &in) // {{{  may return: NumFloat NumInt Ref
 {
   int res=in.readInt();
 
@@ -218,7 +226,7 @@ Object *PDFTools::Parser::parseNum(ParsingInput &in) // {{{  may return: NumFloa
 }
 // }}}
 
-String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decrypt) // {{{
+String *Parser::parseString(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next('(',41)) {
     throw UsrError("Not a String");
@@ -267,7 +275,7 @@ String *PDFTools::Parser::parseString(ParsingInput &in,const Decrypt *str_decryp
 }
 // }}}
 
-String *PDFTools::Parser::parseHexstring(ParsingInput &in,const Decrypt *str_decrypt) // {{{
+String *Parser::parseHexstring(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next('<',40)) {
     throw UsrError("Not a Hexstring");
@@ -306,7 +314,7 @@ String *PDFTools::Parser::parseHexstring(ParsingInput &in,const Decrypt *str_dec
 }
 // }}}
 
-Name *PDFTools::Parser::parseName(ParsingInput &in) // {{{
+Name *Parser::parseName(ParsingInput &in) // {{{
 {
   if (!in.next("/")) {
     throw UsrError("Not a name");
@@ -346,7 +354,7 @@ Name *PDFTools::Parser::parseName(ParsingInput &in) // {{{
 }
 // }}}
 
-Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *str_decrypt) // {{{
+Array *Parser::parseArray(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next('[',40)) {
     throw UsrError("Not an Array");
@@ -365,7 +373,7 @@ Array *PDFTools::Parser::parseArray(ParsingInput &in,const Decrypt *str_decrypt)
 }
 // }}}
 
-Dict *PDFTools::Parser::parseDict(ParsingInput &in,const Decrypt *str_decrypt) // {{{
+Dict *Parser::parseDict(ParsingInput &in,const Decrypt *str_decrypt) // {{{
 {
   if (!in.next("<<",80)) {
     throw UsrError("Not a Dictionary");
@@ -389,7 +397,7 @@ Dict *PDFTools::Parser::parseDict(ParsingInput &in,const Decrypt *str_decrypt) /
 }
 // }}}
 
-pair<int,long> PDFTools::Parser::read_pdf(Input &fi) // {{{
+Parser::Trailer Parser::read_pdf(Input &fi) // {{{
 {
   char buf[1025];
   int rlen=fi.read(buf,1024);
@@ -402,10 +410,16 @@ pair<int,long> PDFTools::Parser::read_pdf(Input &fi) // {{{
   }
   int version=(tmp[5]-'0')*10+(tmp[7]-'0');
 
-  if (rlen==1024) { // i.e. pdf is not smaller than 1k, otherwise the pos() will fail.
+  // now try to find the end
+  long startpos;
+  if (rlen<1024) {
+    startpos=0;
+  } else { // i.e. pdf is not smaller than 1k, otherwise the pos() will fail.
     fi.pos(-1024);
+    startpos=fi.pos();
     rlen=fi.read(buf,1024);
     buf[rlen]=0;
+    assert(rlen==1024);
   }
 
   for (tmp=buf+rlen-1-9;tmp>=buf;tmp--) {
@@ -416,8 +430,10 @@ pair<int,long> PDFTools::Parser::read_pdf(Input &fi) // {{{
   if (tmp<buf) {
     throw UsrError("startxref not found");
   }
+  startpos+=tmp-buf;
   tmp+=9;
   tmp+=strspn(tmp,"\n\r");
+
   unsigned long xrefpos;
   char *t2;
   xrefpos=strtoul(tmp,&t2,10);
@@ -426,16 +442,15 @@ pair<int,long> PDFTools::Parser::read_pdf(Input &fi) // {{{
     throw UsrError("EOF not found");
   }
   assert(xrefpos<=LONG_MAX);
-  
-  return make_pair(version,xrefpos);
+
+  return Trailer(version,startpos,xrefpos);
 }
 // }}}
 
-auto_ptr<PDF> PDFTools::open_pdf(Input &fi) // {{{
+auto_ptr<PDF> open_pdf(Input &fi) // {{{
 {
-  pair<int,long> res=Parser::read_pdf(fi);
-  
-  return auto_ptr<PDF>(new PDF(fi,res.first,res.second));
+  return auto_ptr<PDF>(new PDF(fi,Parser::read_pdf(fi)));
 }
 // }}}
 
+} // namespace PDFTools

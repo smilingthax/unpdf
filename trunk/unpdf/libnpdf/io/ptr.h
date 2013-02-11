@@ -31,11 +31,11 @@ namespace PDFTools {
         delete in;
       }
     }
-    InputPtr(InputPtr_ref ref) 
+    InputPtr(InputPtr_ref ref)
         : Input(),in(ref.in),ours(ref.ours),closefn(ref.closefn),user(ref.user) {}
     operator InputPtr_ref() { // {{{
       // store
-      Input *inp=in; 
+      Input *inp=in;
       bool take=ours;
       CLOSEFN cfn=closefn;
       void *usr=user;
@@ -45,7 +45,7 @@ namespace PDFTools {
       closefn=NULL;
       user=NULL;
 
-      return InputPtr_ref(inp,take,cfn,usr); 
+      return InputPtr_ref(inp,take,cfn,usr);
     } // }}}
 
     int read(char *buf,int len) { return in->read(buf,len); }
@@ -90,11 +90,11 @@ namespace PDFTools {
         delete out;
       }
     }
-    OutputPtr(OutputPtr_ref ref) 
+    OutputPtr(OutputPtr_ref ref)
         : Output(),out(ref.out),ours(ref.ours),closefn(ref.closefn),user(ref.user) {}
     operator OutputPtr_ref() { // {{{
       // store
-      Output *outp=out; 
+      Output *outp=out;
       bool take=ours;
       CLOSEFN cfn=closefn;
       void *usr=user;
@@ -104,7 +104,7 @@ namespace PDFTools {
       closefn=NULL;
       user=NULL;
 
-      return OutputPtr_ref(outp,take,cfn,usr); 
+      return OutputPtr_ref(outp,take,cfn,usr);
     } // }}}
 
     void vprintf(const char *fmt,va_list ap) { out->vprintf(fmt,ap); }

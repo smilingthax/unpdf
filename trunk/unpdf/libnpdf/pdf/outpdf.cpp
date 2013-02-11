@@ -208,7 +208,8 @@ Object *OutPDF::copy_from(PDF &inpdf,const Ref &startref,std::map<Ref,Ref> *done
     Dict &indict=const_cast<Dict &>(sv->getDict()); // BEWARE: we effectively neuter the InStream
 
     // FIXME: no newRef here ...  -- infinite remap loop is possible
-    const bool rawcopy=false; //true;
+//    const bool rawcopy=false;
+    const bool rawcopy=true;
 
 #if 0
 // OutStream will disembowel indict

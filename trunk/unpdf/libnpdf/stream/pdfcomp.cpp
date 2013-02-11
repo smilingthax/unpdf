@@ -42,7 +42,7 @@ PDFTools::InStream::InStream(PDF *pdf,Dict *sdict,SubInput *read_from,const Ref 
     }
 
     if ( (pdf)&&(decryptref) ) {
-      decrypt=pdf->getStmDecrypt(*decryptref,cryptname); 
+      decrypt=pdf->getStmDecrypt(*decryptref,cryptname);
     }
   } catch (...) {
     delete filter;
@@ -158,7 +158,7 @@ Ref PDFTools::OutStream::output(OutPDF &outpdf,bool raw)
     if (len!=-1) { // size already known (as long as write_base is byte-transparent)
       dict.add("Length",len);
       const int res=outpdf.outStream(dict,*readfrom,NULL,NULL,ref);
-      assert(res==len); 
+      assert(res==len);
       return ref;
     }
   }

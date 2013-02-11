@@ -9,29 +9,24 @@
 #include "../objs/all.h" // less?
 
 #include "../io/pdfio.h" // FIXME
+#include "../io/ptr.h"
+#include "../stream/pdfcomp.h" // FIXME
+#include <stdio.h> // FIXME
+//  #include "../util/util.h"
+//  #include "../io/file.h"
 
 namespace PDFTools {
+//  extern FILEOutput stdfo;
 
-PDF::PDF(Input &read_base,int version,int xrefpos) // {{{
+PDF::PDF(Input &read_base,const Parser::Trailer &trailer) // {{{
   : read_base(read_base),
-    version(version),
+    version(trailer.version),
     xref(false),
     security(NULL)
 {
-  {
-    // read xref and trailer
-    read_base.pos(xrefpos);
-
-    ParsingInput pi(read_base);
-    if (!xref.parse(pi)) {
-      throw UsrError("Could not read xref");
-    }
-
-// FIXME: only if hybrid or table:
-    // reference says: "trailer precedes startxref" and not "trailer follows xref";
-    // but even acrobat seems to just read on instead of skim backwards
-    pi.skip(false); // some pdfs require this
-    read_trailer(pi);
+  // read xref and trailer
+  if (!xref.parse(read_base,trailer,&trdict)) {
+    throw UsrError("Could not read xref");
   }
 
   // read rootdict
@@ -148,8 +143,86 @@ Decrypt *PDF::getEffDecrypt(const Ref &ref,const char *cryptname) // {{{
 }
 // }}}
 
+// TODO elsewhere
+std::vector<std::pair<int,int> > loadObjStreamHeader(SubInput &si,int len,int first)
+{
+  std::vector<std::pair<int,int> > ret;
+  ret.reserve(len+1);
+
+  ParsingInput psi(si);
+
+  for (int iA=0;iA<len;iA++) {
+    int objno=psi.readUInt();
+    psi.skip(true);
+    int off=psi.readUInt();
+    psi.skip(true);
+    ret.push_back(std::make_pair(objno,off+first));
+  }
+
+  ret.push_back(std::make_pair(-1,-1));  // TODO? better? elsewhere?
+
+  return ret;
+}
+
+// TODO: better Objectstream handling
 Object *PDF::getObject(const Ref &ref) // {{{
 {
+  Ref oref=xref.isObjectStream(ref);
+  if (oref.ref) {
+    int subobj=oref.gen;
+    oref.gen=0;
+    std::auto_ptr<Object> ostm(getObject(oref));
+    InStream *stm=dynamic_cast<InStream *>(ostm.get());
+    if (!stm) {
+      throw UsrError("ObjStm expected");
+    }
+    const Dict &sdict=stm->getDict();
+    sdict.ensure(*this,"Type","ObjStm");
+
+    int num=sdict.getInt(*this,"N");
+    if ( (subobj<0)||(subobj>num) ) {
+      throw UsrError("Bad subobj number for this objstm"); // TODO? how does /Extends work?
+    }
+
+    int first=sdict.getInt(*this,"First");
+
+    const Object *eobj=sdict.find("Extends");
+    const Ref *extends=dynamic_cast<const Ref *>(eobj);
+    if ( (eobj)&&(!extends) ) {
+      throw UsrError("Expected /Extends to be a stream reference");
+    } else if (extends) {
+fprintf(stderr,"WARNING: /Extends not yet supported\n");
+    }
+
+    InputPtr in=stm->open();
+    SubInput hsi(in,0,first);
+    std::vector<std::pair<int,int> > ohdr=loadObjStreamHeader(hsi,num,first); // maybe cache at least this in XRef?
+
+// unread from hsi: first-hsi.pos();
+int skip_bytes=ohdr[subobj].second-hsi.pos();
+char buf[10];
+while (skip_bytes>10) {
+  in.read(buf,10);
+  skip_bytes-=10;
+}
+in.read(buf,skip_bytes);
+
+#if 0  // FIXME: Filter does not know, where we are, forbids pos([current position]), but SubInput always does this...
+fprintf(stderr,"%d %d\n",in.pos(),ohdr[subobj].second);
+    SubInput si(in,ohdr[subobj].second,ohdr[subobj+1].second); // this uses only forward seeking.  // still this needs complete decompression. obj cache might help...
+
+    ParsingInput psi(si);
+#endif
+    ParsingInput psi(in);
+
+    std::auto_ptr<Decrypt> str_decrypt(getStrDecrypt(ref));
+    std::auto_ptr<Object> ret(Parser::parse(psi,str_decrypt.get()));
+    if (!ret.get()) { // no more input
+      throw UsrError("Could not find complete object here");
+    }
+    return ret.release();
+  }
+
   int start=xref.getStart(ref);
   if (start==-1)  { // not found: Null-object
     return new Object();
@@ -196,48 +269,6 @@ ObjectPtr PDF::fetch(const Object *obj) // {{{
     return ObjectPtr(fetch(*refval),true);
   }
   return ObjectPtr(const_cast<Object *>(obj),false);
-}
-// }}}
-
-void PDF::read_trailer(ParsingInput &pi) // {{{
-{
-  if (!pi.next("trailer")) {
-    throw UsrError("Could not read trailer");
-  }
-  pi.skip();
-  std::auto_ptr<Dict> tr_dict(Parser::parseDict(pi));
-  trdict._move_from(tr_dict.get());
-  
-  const Object *pobj=trdict.find("Prev");
-  while (pobj) {
-    const NumInteger *ival=dynamic_cast<const NumInteger*>(pobj);
-    if (!ival) {
-      throw UsrError("/Prev value is not Integer");
-    }
-    pi.pos(ival->value());
-    if (!xref.parse(pi)) {
-      throw UsrError("Could not read previous xref");
-    }
-    if (!pi.next("trailer")) {
-      throw UsrError("Could not read previous trailer");
-    }
-    pi.skip();
-    tr_dict.reset(Parser::parseDict(pi));
-    pobj=tr_dict->find("Prev");
-  }
-
-  // check size
-  pobj=trdict.find("Size");
-  if (!pobj) {
-    throw UsrError("No /Size in trailer");
-  }
-  const NumInteger *ival=dynamic_cast<const NumInteger*>(pobj);
-  if (!ival) {
-    throw UsrError("/Size in trailer is not an Integer");
-  }
-  if (ival->value()!=(int)xref.size()) {
-    throw UsrError("Damaged trailer or xref (size does not match)");
-  }
 }
 // }}}
 

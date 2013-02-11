@@ -236,7 +236,7 @@ void Dict::_copy_from(const Dict &from) // {{{
 }
 // }}}
 
-void Dict::ensure(PDF &pdf,const char *key,const char *name) // {{{
+void Dict::ensure(PDF &pdf,const char *key,const char *name) const // {{{
 {
   const Object *obj=find(key);
   if (!obj) {
@@ -249,7 +249,7 @@ void Dict::ensure(PDF &pdf,const char *key,const char *name) // {{{
     throw UsrError("/%s is not a Name",key);
   }
   if (strcmp(nval->value(),name)!=0) {
-    throw UsrError("Expected /%s to be %s, but %s found",key,name,nval->value()); 
+    throw UsrError("Expected /%s to be %s, but %s found",key,name,nval->value());
   }
 }
 // }}}
@@ -265,15 +265,15 @@ ObjectPtr Dict::get(PDF &pdf,const char *key) const // {{{
 // }}}
 
 int Dict::getInt(PDF &pdf,const char *key,bool *found) const // {{{
-{ 
+{
   const Object *obj=find(key);
   if (!obj) {
     if (!found) {
       throw UsrError("Required integer key /%s not found",key);
-    } 
+    }
     *found=false;
     return 0;
-  } 
+  }
   ObjectPtr fobj=pdf.fetch(obj);
   const NumInteger *nival=dynamic_cast<const NumInteger *>(fobj.get());
   if (!nival) {

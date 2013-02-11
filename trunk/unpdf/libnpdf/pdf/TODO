@@ -1,5 +1,5 @@
 
-- only one PDF class in the future; 
+- only one PDF class in the future;
   maybe PDFWriter; probably PDFCopier
     i.e. with OutPDF::remap_array / remap_dict
 

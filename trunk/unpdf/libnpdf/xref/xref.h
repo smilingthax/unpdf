@@ -9,7 +9,11 @@ namespace PDFTools {
 
   class Ref;
   class Output;
+  class Input;
+  class SubInput;
   class ParsingInput;
+  class Dict;
+  namespace Parser { struct Trailer; }
   class XRef {
   public:
     XRef(bool writeable);
@@ -19,13 +23,15 @@ namespace PDFTools {
     void clear();
 
     enum ParseMode { BOTH, AS_STREAM, AS_TABLE };
-    bool parse(ParsingInput &pi,ParseMode mode=BOTH);
-    void print(Output &out,bool as_stream=false,bool master=true);
+    bool parse(Input &in,Parser::Trailer trailer,Dict *trdict,ParseMode mode=BOTH); // trailer is either part of object, or must be parsed separately (can be NULL)
+    void print(Output &out,bool as_stream=false,bool master=true,bool debug=false);
     size_t size() const;
 
+// TODO: only one function to return everything
     long getStart(const Ref &ref) const; // -1 on error
     long getEnd(const Ref &ref) const; // -1 on not_specified
-    // convenience 
+    Ref isObjectStream(const Ref &ref) const; // TODO: better
+    // convenience
     //
   public:
     static long readUIntOnly(const char *buf,int len);
@@ -44,10 +50,11 @@ namespace PDFTools {
     std::vector<int> xrefpos;
     // ... XRefMap xref_update; bool update_mode;
   protected:
-    bool read_xref(ParsingInput &fi,XRefVec &to,bool ignore_stream=false);
-    bool read_xref_stream(ParsingInput &fi,XRefVec &to);
+    bool read_xref(ParsingInput &pi,XRefVec &to);
+    Dict *read_xref_stream(SubInput &si,XRefVec &to);
     struct offset_sort;
     void generate_ends();
+    void check_trailer(Dict &trdict);
   };
 
 } // namespace PDFTools

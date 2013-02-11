@@ -33,7 +33,7 @@ using namespace std;
 // TODO: InStream should resolve (it's the dict owner)
 
 // helper to wrap a single value into an Array to simplify processing
-// resolve all immediate references 
+// resolve all immediate references
 void fetch_in_array(Array &ret,PDF *pdf,const Object *obj) // {{{
 {
   if (!pdf) { // can't resolve. this is for cases like XRef stream where spec forbids indirect references.
@@ -67,7 +67,7 @@ void fetch_in_array(Array &ret,PDF *pdf,const Object *obj) // {{{
 }
 // }}}
 
-// TODO: resolve 
+// TODO: resolve
 const Dict *resolve_dict(const Dict *dict,PDF *pdf,bool owns) // {{ {
 {
 /*
@@ -1241,7 +1241,7 @@ const char *FlateFilter::name="FlateDecode";
 FlateFilter::FInput::FInput(Input &read_from) : read_from(read_from)
 {
   buf.resize(4096);
-  
+
   // use defaults
   zstr.zalloc=Z_NULL;
   zstr.zfree=Z_NULL;
@@ -1270,7 +1270,7 @@ int FlateFilter::FInput::read(char *_buf,int len)
   int res;
   zstr.next_out=(Bytef *)_buf;
   zstr.avail_out=len;
-  
+
   while (zstr.avail_out>0) {
     if (zstr.avail_in==0) {
       zstr.next_in=(Bytef *)&buf[0];
@@ -1290,7 +1290,7 @@ int FlateFilter::FInput::read(char *_buf,int len)
 
 long FlateFilter::FInput::pos() const
 {
-  // TODO: return current output position ? 
+  // TODO: return current output position ?
   return -1;
 }
 
