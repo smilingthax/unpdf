@@ -1,6 +1,8 @@
 #ifndef BIND_THIS_H_
 #define BIND_THIS_H_
 
+#include <utility>
+
 // use as:
 //   YourClass instance;
 //   auto tmi=bind_this(&YourClass::TheMethod,&instance);
