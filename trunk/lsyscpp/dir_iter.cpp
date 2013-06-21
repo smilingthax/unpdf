@@ -26,13 +26,16 @@ dir_iterator::dir_iterator(const std::string &path)
 
 dir_iterator::~dir_iterator()
 {
-  closedir(impl->d);
+  if (impl->d) {
+    closedir(impl->d);
+  }
   delete impl;
 }
 
 const dir_iterator &dir_iterator::operator++()
 {
-  struct dirent *de; 
+  struct dirent *de;
+  // assert(impl->d);  // user is not allowed to call ++ on end()
   de=readdir(impl->d);
   if (!de) { // done
     closedir(impl->d);
