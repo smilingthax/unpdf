@@ -22,17 +22,17 @@ all: $(LIB1) $(EXEC1)
 ifneq "$(MAKECMDGOALS)" "clean"
   -include $(SOURCES1:.c=.d) $(SOURCES2:.cpp=.d)
   -include $(TESTSRC1:.c=.d) $(TESTSRC2:.cpp=.d)
-endif 
+endif
 
 clean:
-	rm -f $(LIB1) $(OBJECTS1) $(SOURCES1:.c=.d) $(SOURCES2:.cpp=.d) 
+	rm -f $(LIB1) $(OBJECTS1) $(SOURCES1:.c=.d) $(SOURCES2:.cpp=.d)
 	rm -f $(EXEC1) $(TESTOBJECTS) $(TESTSRC1:.c=.d) $(TESTSRC2:.cpp=.d)
 
 %.d: %.c
 	@$(SHELL) -ec '$(CC) -MM $(CPPFLAGS) $< \
                       | sed '\''s§\($*\)\.o[ :]*§\1.o $@ : §g'\'' > $@;\
                       [ -s $@ ] || rm -f $@'
-		      
+
 %.d: %.cpp
 	@$(SHELL) -ec '$(CXX) -MM $(CPPFLAGS) $< \
                       | sed '\''s§\($*\)\.o[ :]*§\1.o $@ : §g'\'' > $@;\
