@@ -211,7 +211,7 @@ void PDFTools::OutStream::setDict(const char *key,const Object &obj)
 void PDFTools::OutStream::setDict(const char *key,const std::vector<float> &nums)
 {
   dict.erase(key);
-  dict.add(key,Array::getNums(nums),true);
+  dict.add(key,Array::from(nums),true);
 }
 
 void PDFTools::OutStream::unsetDict(const char *key)

@@ -6,7 +6,7 @@
 
 #include "../io/base.h"
 
-// #include "...." pdf 
+// #include "...." pdf
 #include "../objs/ptr.h"  // FIXME "contained" within PDF(?)
 
 namespace PDFTools {

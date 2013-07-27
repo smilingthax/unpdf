@@ -21,7 +21,7 @@ namespace PDFTools {
     bool check_pw(const std::string &pw); // TODO: return which one
 
 // TODO? static:
-    // for writing 
+    // for writing
     std::pair<std::string,std::string> set_pw(const std::string &owner_pw,const std::string &user_pw); // (owner_hash,user_hash) // TODO
     std::pair<std::string,std::string> set_pw(const std::string &user_pw);
     Dict *set_pw389(const std::string &owner_pw,const std::string &user_pw,int perms,bool encmeta);

@@ -101,7 +101,7 @@ void OutPDF::finish(const Ref *pgref) // {{{
 }
 // }}}
 
-/* TODO ? howto generate id before 
+/* TODO ? howto generate id before
 std::string OutPDF::generate_id_first()
 {
   ? TODO
@@ -163,9 +163,9 @@ Object *OutPDF::copy_from(PDF &inpdf,const Ref &startref,std::map<Ref,Ref> *done
 {
   if (donemap) {
     std::map<Ref,Ref>::const_iterator it=donemap->find(startref);
-  
+
     if (it!=donemap->end()) {
-      return it->second.clone(); 
+      return it->second.clone();
     }
   }
 

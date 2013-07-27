@@ -52,7 +52,13 @@ namespace PDFTools {
     bool getBool(PDF &pdf,const char *key,bool defval) const;
     int getNames(PDF &pdf,const char *key,const char *name0,const char *name1,.../*name1,...,NULL*/) const; // if not found: default=0, or throws if (name0==0); always throws on bad name
 
+    // TODO: std::move...
+    Name_ref getName(PDF &pdf,const char *key,bool required=true) const;    // returns Name,  possibly .empty()
     std::string getString(PDF &pdf,const char *key) const;
+
+    DictPtr getDict(PDF &pdf,const char *key,bool required=true) const; // not Dict: throws;  (!required && notfound): TPtr.empty()
+    ArrayPtr getArray(PDF &pdf,const char *key,bool required=true) const;
+
     // when found: ensures direct ...
     bool getBool_D(const char *key,bool defval) const;
     int getInt_D(const char *key,int defval) const;

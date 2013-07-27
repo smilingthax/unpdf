@@ -68,7 +68,7 @@ namespace PDFTools {
     class FOutput : public Output {
     public:
       FOutput(Output &write_to);
-    
+
       void write(const char *buf,int len);
       void flush();
     private:
@@ -89,6 +89,8 @@ namespace PDFTools {
     int read(char *buf,int len);
     long pos() const;
     void pos(long pos); // pos(0): "reset"
+
+    int hasBpc() const;
 
   protected:
     void tiff_decode();
@@ -156,7 +158,7 @@ namespace PDFTools {
     public:
       FOutput(Output &write_to,int early=1);
       ~FOutput();
-    
+
       void write(const char *buf,int len);
       void flush();
     private:
@@ -173,7 +175,7 @@ namespace PDFTools {
     using LZWFilter::Params;
 
     class FInput : public Input {
-    public: 
+    public:
       FInput(Input &read_from);
       ~FInput();
 
@@ -186,7 +188,7 @@ namespace PDFTools {
       z_stream zstr;
     };
     class FOutput : public Output {
-    public: 
+    public:
       FOutput(Output &write_to);
       ~FOutput();
 
@@ -221,7 +223,7 @@ namespace PDFTools {
     class FOutput : public Output {
     public:
       FOutput(Output &write_to);
- 
+
       void write(const char *buf,int len);
       void flush();
     private:

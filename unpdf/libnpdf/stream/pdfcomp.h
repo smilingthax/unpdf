@@ -33,7 +33,7 @@ namespace PDFTools {
 
     // advanced interface
     SubInput *release(); // now SubInput is YOURS; better you destroy stm now.
-    SubInput &getInput() { return *readfrom; }
+    SubInput &getInput() { return *readfrom; } // i.e. not even decrypted
     IFilter *getFilter() { return filter; }
   private:
     Dict dict;

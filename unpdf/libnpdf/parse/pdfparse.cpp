@@ -212,7 +212,7 @@ Object *Parser::parseNum(ParsingInput &in) // {{{  may return: NumFloat NumInt R
       // ok we got one
       in.unread(buf+iA+1,len-iA-1);
       int gen=0;
-      for (iA=0;buf[iA]>='0';iA++) { 
+      for (iA=0;buf[iA]>='0';iA++) {
         gen*=10;
         gen+=buf[iA]-'0';
       }

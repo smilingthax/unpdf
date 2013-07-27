@@ -9,6 +9,7 @@
 
 #include "../pdf/pdf.h"  // FIXME
 #include "../objs/string.h"
+#include "../objs/array.h"
 
 namespace PDFTools {
 
@@ -332,20 +333,12 @@ bool Dict::getBool(PDF &pdf,const char *key,bool defval) const // {{{
 
 int Dict::getNames(PDF &pdf,const char *key,const char *name0,const char *name1,.../*name1,...,NULL*/) const // {{{
 {
-  ObjectPtr fobj=get(pdf,key);
-  if (fobj.empty()) {
-    if (!name0) {
-      throw UsrError("Required name key /%s not found",key);
-    }
-    return 0;
-  }
-  const Name *nval=dynamic_cast<const Name *>(fobj.get());
-  if (!nval) {
-    throw UsrError("/%s is not a Name",key);
-  }
+  const Name &nval=getName(pdf,key,(name0==NULL));
   int ret=0;
 
-  if ( (name0)&&(strcmp(nval->value(),name0)==0) ) {
+  if (nval.empty()) {
+    return ret;
+  } else if ( (name0)&&(strcmp(nval.value(),name0)==0) ) {
     return ret;
   }
   ret++;
@@ -354,7 +347,7 @@ int Dict::getNames(PDF &pdf,const char *key,const char *name0,const char *name1,
   const char *tmp=name1;
   va_start(ap,name1);
   while (tmp) {
-    if (strcmp(nval->value(),tmp)==0) {
+    if (strcmp(nval.value(),tmp)==0) {
       va_end(ap);
       return ret;
     }
@@ -363,7 +356,30 @@ int Dict::getNames(PDF &pdf,const char *key,const char *name0,const char *name1,
   }
   va_end(ap);
 
-  throw UsrError("Name /%s for key /%s is not allowed",nval->value(),key);
+  throw UsrError("Name /%s for key /%s is not allowed",nval.value(),key);
+}
+// }}}
+
+Name_ref Dict::getName(PDF &pdf,const char *key,bool required) const // {{{
+{
+  ObjectPtr fobj=get(pdf,key);
+  if (fobj.empty()) {
+    if (required) {
+      throw UsrError("Required name key /%s not found",key);
+    }
+    return Name_ref();
+  }
+  Name *nval=dynamic_cast<Name *>(fobj.get());
+  if (!nval) {
+    throw UsrError("/%s is not a Name",key);
+  }
+  if (!fobj.owns()) {
+    return Name(nval->value(),Name::STATIC);
+  }
+  if (const char *val=nval->release()) {
+    return Name(val,Name::TAKE);
+  }
+  return Name(nval->value(),Name::DUP);
 }
 // }}}
 
@@ -375,6 +391,42 @@ std::string Dict::getString(PDF &pdf,const char *key) const // {{{
     throw UsrError("Required string key /%s not found",key);
   }
   return std::string(sval->value()); // we must! copy
+}
+// }}}
+
+DictPtr Dict::getDict(PDF &pdf,const char *key,bool required) const // {{{
+{
+  ObjectPtr fobj=get(pdf,key);
+  if (fobj.empty()) {
+    if (required) {
+      throw UsrError("Required dict key /%s not found",key);
+    }
+    return DictPtr();
+  }
+  Dict *dval=dynamic_cast<Dict *>(fobj.get());
+  if (!dval) {
+    throw UsrError("/%s is not a Dict",key);
+  }
+  fobj.release();
+  return DictPtr(dval,fobj.owns());
+}
+// }}}
+
+ArrayPtr Dict::getArray(PDF &pdf,const char *key,bool required) const // {{{
+{
+  ObjectPtr fobj=get(pdf,key);
+  if (fobj.empty()) {
+    if (required) {
+      throw UsrError("Required array key /%s not found",key);
+    }
+    return ArrayPtr();
+  }
+  Array *aval=dynamic_cast<Array *>(fobj.get());
+  if (!aval) {
+    throw UsrError("/%s is not an Array",key);
+  }
+  fobj.release();
+  return ArrayPtr(aval,fobj.owns());
 }
 // }}}
 

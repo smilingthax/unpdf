@@ -12,7 +12,7 @@ namespace PDFTools {
   public:
     Array();
     ~Array();
-  
+
     void add(const Object *obj,bool take=false);
     void print(Output &out) const;
 
@@ -26,12 +26,15 @@ namespace PDFTools {
     void set(int pos,const Object *obj,bool take); // replace(only!) [or change ownership]
 
     // convenience
-    static Array *getNums(const std::vector<float> &nums);
+    static Array *from(const std::vector<float> &nums);
     // these do not preserve Input position: !!!
     ObjectPtr get(PDF &pdf,int pos) const;
     ObjectPtr getTake(PDF &pdf,int pos); // transfer ownership
     std::string getString(PDF &pdf,int pos) const;
     std::vector<float> getNums(PDF &pdf,int num) const;
+
+    DictPtr getDict(PDF &pdf,int pos,bool required=true) const; // not Dict: throws;  (!required && notfound): TPtr.empty()
+    ArrayPtr getArray(PDF &pdf,int pos,bool required=true) const;
 
     int getUInt_D(int pos) const;
 
@@ -40,7 +43,7 @@ namespace PDFTools {
   private:
     struct ArrayType {
       ArrayType(const Object *obj,bool ours);
-    
+
       const Object *obj;
       bool ours;
     };

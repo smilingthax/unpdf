@@ -3,6 +3,12 @@
 
 namespace PDFTools {
 
+void TPtr_base::assert_same(bool oldTake,bool newTake)
+{
+  assert(oldTake==newTake);
+}
+
+/*
 ObjectPtr::ObjectPtr(ObjectPtr &optr) // {{{
   : ptr(optr.release()),
     ours(optr.ours)
@@ -23,19 +29,6 @@ ObjectPtr &ObjectPtr::operator=(ObjectPtr_ref ref) // {{{
   return *this;
 }
 // }}}
-
-void ObjectPtr::reset(Object *obj,bool take) // {{{
-{
-  if (obj!=ptr) {
-    if (ours) {
-      delete ptr;
-    }
-    ours=take;
-    ptr=obj;
-  } else {
-    assert(ours==take);
-  }
-}
-// }}}
+*/
 
 } // namespace PDFTools

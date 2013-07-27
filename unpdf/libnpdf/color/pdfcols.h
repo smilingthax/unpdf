@@ -37,8 +37,8 @@ namespace PDFTools {
     virtual Ref output(OutPDF &outpdf); // Stream-part (only if needed!)
 
     virtual int numComps() const; // number of color components
- 
-    static ColorSpace *parse(PDF &pdf,const Object &obj);
+
+    static ColorSpace *parse(PDF &pdf,const Object &obj); // (factory)
   };
 
   class SimpleColorSpace : public ColorSpace {
@@ -47,6 +47,8 @@ namespace PDFTools {
     SimpleColorSpace(CName type);
 
     int numComps() const;
+    const char *name() const { return names[type]; }
+    CName ctype() const { return type; }
 
     Object *toObj(OutPDF &outpdf) const;
     static SimpleColorSpace *parse(const char *name);
@@ -65,11 +67,11 @@ namespace PDFTools {
                              const std::vector<float> &range);
 
     int numComps() const;
+    const char *name() const { return names[type]; }
+    CName ctype() const { return type; }
 
     Object *toObj(OutPDF &outpdf) const;
     static CieColorSpace *parse(PDF &pdf,const char *name,const Array &aval);
-    // helper ... also used by ICC
-    static std::vector<float> getNums(PDF &pdf,const ObjectPtr &obj,int num);
   private:
     CName type;
     std::vector<float> white,black;
@@ -90,6 +92,8 @@ namespace PDFTools {
     ~ICCColorSpace();
 
     int numComps() const;
+    const char *name() const { return names[type]; }
+    CName ctype() const { return type; }
 
     Object *toObj(OutPDF &outpdf) const;
     Ref output(OutPDF &outpdf);
@@ -113,6 +117,8 @@ namespace PDFTools {
     // ... TODO
 
     int numComps() const;
+    const char *name() const { return names[type]; }
+    CName ctype() const { return type; }
 
     Object *toObj(OutPDF &outpdf) const;
     Ref output(OutPDF &outpdf);
@@ -131,6 +137,8 @@ namespace PDFTools {
     ~IndexedColorSpace();
 
     int numComps() const;
+    const char *name() const { return names[type]; }
+    CName ctype() const { return type; }
 
     Object *toObj(OutPDF &outpdf) const;
     Ref output(OutPDF &outpdf);
@@ -152,6 +160,8 @@ namespace PDFTools {
     ...
 
     int numComps() const;
+    const char *name() const { return names[type]; }
+    CName ctype() const { return type; }
 
     Object *toObj(OutPDF &outpdf) const;
     Ref output(OutPDF &outpdf);

@@ -9,7 +9,7 @@
 
 namespace PDFTools {
 
-struct PagesTree::inherit { 
+struct PagesTree::inherit {
   inherit() : mediabox(NULL),cropbox(NULL),rotate(NULL),resources(NULL) {}
   const Array *mediabox,*cropbox;
   const NumInteger *rotate;
@@ -116,7 +116,7 @@ void PagesTree::parsePage(PDF &pdf,const Ref &ref,Dict &dict,const inherit &inh)
 
 void PagesTree::parsePagesTree_node(PDF &pdf,const Ref &ref,const Ref *parent,inherit inh) // {{{
 {
-  // get object 
+  // get object
   ObjectPtr pobj(pdf.fetch(ref));
   Dict *dict=dynamic_cast<Dict *>(pobj.get());
   if (!dict) {
@@ -141,21 +141,21 @@ void PagesTree::parsePagesTree_node(PDF &pdf,const Ref &ref,const Ref *parent,in
   }
 
   // do inherit
-  ObjectPtr pmb(dict->get(pdf,"MediaBox"));
+  ArrayPtr pmb(dict->getArray(pdf,"MediaBox",false));
   if (!pmb.empty()) {
-    inh.mediabox=dynamic_cast<const Array *>(pmb.get());
+    inh.mediabox=pmb.get();
   }
-  ObjectPtr pcb(dict->get(pdf,"CropBox"));
-  if (!pcb.empty()) {
-    inh.cropbox=dynamic_cast<const Array *>(pcb.get());
+  ArrayPtr pcb(dict->getArray(pdf,"CropBox",false));
+  if (!pmb.empty()) {
+    inh.cropbox=pcb.get();
   }
   ObjectPtr prt(dict->get(pdf,"Rotate"));
   if (!prt.empty()) {
     inh.rotate=dynamic_cast<const NumInteger *>(prt.get());
   }
-  ObjectPtr pre(dict->get(pdf,"Resources"));
+  DictPtr pre(dict->getDict(pdf,"Resources",false));
   if (!pre.empty()) {
-    inh.resources=dynamic_cast<const Dict *>(pre.get());
+    inh.resources=pre.get();
   }
 
   if (pagestype==1) { // Pages

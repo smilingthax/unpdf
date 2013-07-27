@@ -117,7 +117,7 @@ PDFTools::StandardSecurityHandler::StandardSecurityHandler(PDF &pdf,const String
     userpw_key=dict.getString(pdf,"UE");
     perm_enc=dict.getString(pdf,"Perms");
   }
- 
+
   check_pw(string());
 }
 
@@ -204,7 +204,7 @@ const char PDFTools::StandardSecurityHandler::pad[]=
          "\x28\xbf\x4e\x5e\x4e\x75\x8a\x41\x64\x00\x4e\x56\xff\xfa\x01\x08"
          "\x2e\x2e\x00\xb6\xd0\x68\x3e\x80\x2f\x0c\xa9\xfe\x64\x53\x69\x7a";
 
-// compute crypt-key from user_pw 
+// compute crypt-key from user_pw
 // NOTE: user_pw shall be converted from user codepage (UTF-8 via user cp) to PDFDocEncoding
 string PDFTools::StandardSecurityHandler::compute_key(const string &user_pw) // {{{
 {
@@ -610,9 +610,9 @@ Dict *PDFTools::StandardSecurityHandler::set_pw389(const string &owner_pw,const 
   buf[3]=((unsigned int)perms>>24)&0xff;
 
   if (encmeta) {
-    buf[8]='T'; 
+    buf[8]='T';
   } else {
-    buf[8]='F'; 
+    buf[8]='F';
   }
 
   buf[9]='a';
@@ -700,14 +700,14 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   }
   CryptFilter tmpcf,*cf=NULL;
   if (cryptname) {
-    /* TODO:   (we don't have pdf around!)   
+    /* TODO:   (we don't have pdf around!)
                ... we could get to it
                ... parseObj actually takes care that we /could/ seek  (for strings)
                ... IFilter has also pdf around
     ObjectPtr cfptr=dict.get(pdf,"CF");
     get_cf(pdf,cfptr.get(),cryptname,tmpcf);
     cf=&tmpcf;
-    */ 
+    */
     if (strcmp(cryptname,"Identity")==0) { // only recognized case for now
       return NULL;
     } else {
@@ -734,5 +734,4 @@ Decrypt *PDFTools::StandardSecurityHandler::getDecrypt(const Ref &ref,CFMode cfm
   return new StandardRC4Crypt(get_objkey(ref,false));
 }
 // }}}
-
 
