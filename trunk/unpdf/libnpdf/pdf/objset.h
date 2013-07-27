@@ -19,4 +19,4 @@ namespace PDFTools {
 
 } // namespace PDFTools
 
-#endif        
+#endif

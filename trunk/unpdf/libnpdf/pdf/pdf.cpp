@@ -30,28 +30,25 @@ PDF::PDF(Input &read_base,const Parser::Trailer &trailer) // {{{
   }
 
   // read rootdict
-  const Object *pobj;
-  if ((pobj=trdict.find("Root"))==NULL) {
-    throw UsrError("No Root entry in trailer");
-  }
-  std::auto_ptr<Object> robj(fetch(dynamic_cast<const Ref &>(*pobj))); // throws if not a Ref (must be indirect)
+  {
+    const Object *pobj=trdict.find("Root");
+    if (!pobj) {
+      throw UsrError("No Root entry in trailer");
+    }
 
-  Dict *rdict=dynamic_cast<Dict *>(robj.get());
-  if (!rdict) {
-    throw UsrError("Root catalog is not a dictionary");
+    ObjectPtr robj(fetch(dynamic_cast<const Ref &>(*pobj))); // throws if not a Ref (must be indirect)
+    if (Dict *rdict=dynamic_cast<Dict *>(robj.get())) {
+      rootdict._move_from(rdict);
+    } else {
+      throw UsrError("Root catalog is not a dictionary");
+    }
   }
-  rootdict._move_from(rdict);
   rootdict.ensure(*this,"Type","Catalog");
 
   // version update?
-  pobj=rootdict.find("Version");
-  if (pobj) { // version update
-    // TODO : may be indirect
-    const Name *nval=dynamic_cast<const Name *>(pobj);
-    if (!nval) {
-      throw UsrError("/Version value is not a Name");
-    }
-    const char *val=nval->value();
+  Name vers(rootdict.getName(*this,"Version",false));
+  if (!vers.empty()) { // version update
+    const char *val=vers.value();
     if ( (!isdigit(val[0]))||(val[1]!='.')||(!isdigit(val[2]))||(val[3]) ) {
       throw UsrError("/Version is not a pdf version");
     }
@@ -63,26 +60,25 @@ PDF::PDF(Input &read_base,const Parser::Trailer &trailer) // {{{
   }
 
   // get Document ID, not encrypted!
-  ObjectPtr iobj=trdict.get(*this,"ID");
-  if (!iobj.empty()) {
-    const Array *aval=dynamic_cast<const Array *>(iobj.get());
-    if ( (!aval)||(aval->size()!=2) ) {
-      throw UsrError("/ID is not an Array of length 2"); // or not direct
+  ArrayPtr iaval=trdict.getArray(*this,"ID",false); // [should probably be direct??]
+  if (!iaval.empty()) {
+    if (iaval->size()!=2) {
+      throw UsrError("/ID has length %d (!=2)",iaval->size());
     }
-    fileid.first=aval->getString(*this,0);
-    fileid.second=aval->getString(*this,1);
+    fileid.first=iaval->getString(*this,0); // these should be direct
+    fileid.second=iaval->getString(*this,1);
   }
 
   // Encryption
-  pobj=trdict.find("Encrypt");
+  const Object *pobj=trdict.find("Encrypt");
   if (pobj) {
-    if (iobj.empty()) {
+    if (iaval.empty()) {
       throw UsrError("/Encrypt requires /ID");
     }
     encryptref=dynamic_cast<const Ref &>(*pobj); // throws if not a Ref  (not sure ATM if this is really required by spec)
-    robj.reset(fetch(encryptref));
+    ObjectPtr robj(fetch(encryptref));
 
-    rdict=dynamic_cast<Dict *>(robj.get());
+    Dict *rdict=dynamic_cast<Dict *>(robj.get());
     if (!rdict) {
       throw UsrError("/Encrypt is not a dictionary");
     }
@@ -91,7 +87,7 @@ PDF::PDF(Input &read_base,const Parser::Trailer &trailer) // {{{
     assert(filtertype==1);
     //  throw UsrError("Unsupported Security Handler /%s",nval->value());
 
-    security=new StandardSecurityHandler(*this,fileid.first,rdict);
+    security=new StandardSecurityHandler(*this,fileid.first,rdict); // moves from rdict
   }
 
   try {

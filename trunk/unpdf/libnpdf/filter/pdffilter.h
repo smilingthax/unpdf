@@ -30,10 +30,12 @@ namespace PDFTools {
 // TODO(?)  InputPtr open(...,int only_filters=-1)
 
 //    ...
-    int hasBpp() const;
-    bool isJPX() const;
-    bool isJPX(ColorSpace &cs) const;
+    int hasBpc() const;  // -1 if not
+    const ColorSpace *isJPX() const;
     const char *hasCrypt() const;
+
+// debug/devel
+std::vector<Input *> &chain() { return filter_chain; }
   protected:
     void init(const Array &filterspec,const Array &decode_params,Input &read_from);
     static void lateCloseFunc(Input *in,void *user);

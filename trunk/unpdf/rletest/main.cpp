@@ -27,7 +27,6 @@ extern "C" {
   #include "gfxfiles.h"
 };
 
-using namespace std;
 using namespace PDFTools;
 
 // TODO: "cloneable"-object
@@ -252,14 +251,14 @@ int read_jpg(const char *filename,char *&buf,int &width,int &height,int &color)
     jin.get_params(width,height,color);
     buf=(char *)malloc(width*height*color*sizeof(char));
     if (!buf) {
-      throw bad_alloc();
+      throw std::bad_alloc();
     }
 
     int res=jin.read(buf,width*height*color);
     if (res<width*height*color) {
       fprintf(stderr,"WARNING: read only %d (%d)\n",res,width*height*color);
     }
-  } catch (exception &ex) {
+  } catch (std::exception &ex) {
     fprintf(stderr,"read_jpg failed: %s\n",ex.what());
     free(buf);
     return 1;
@@ -270,7 +269,7 @@ int read_jpg(const char *filename,char *&buf,int &width,int &height,int &color)
 int main(int argc, char **argv)
 {
   int decode=0,mode=0;
-  vector<const char *> fns;
+  std::vector<const char *> fns;
 
   for (int iA=1;iA<argc;iA++) {
     if (strcmp(argv[iA],"-d")==0) {
@@ -394,7 +393,7 @@ free(mem);
       } else if (mode==100) {
         Ref r;
         StandardAESDecrypt sec("aaaaaaaaaaaaaaaa");
-        auto_ptr<Input> rfi(sec.getInput(fi));
+        std::auto_ptr<Input> rfi(sec.getInput(fi));
         copy(fo,*rfi);
       } else {
         copy(fo,fi);
@@ -424,7 +423,7 @@ free(mem);
       } else if (mode==100) {
         Ref r;
         StandardAESEncrypt sec("aaaaaaaaaaaaaaaa");
-        auto_ptr<Output> rfo(sec.getOutput(fo));
+        std::auto_ptr<Output> rfo(sec.getOutput(fo));
         copy(*rfo,fi);
         rfo->flush();
       } else {
@@ -432,7 +431,7 @@ free(mem);
         fo.flush();
       }
     }
-  } catch (exception &e) {
+  } catch (std::exception &e) {
     fprintf(stderr,"Exception: %s\n",e.what());
     return 1;
   }

@@ -9,13 +9,13 @@
 #include "libnpdf/pdf/pdf.h"
 #include "libnpdf/util/util.h"
 #include "exception.h"
+#include <string.h>
 
-using namespace std;
 using namespace PDFTools;
 
 class PixOutput : public Output {
 public:
-  PixOutput(int width,int height,int bpp);
+  PixOutput(int width,int height,int bpp,bool invert=false);
   ~PixOutput();
 
   void write(const char *buf,int len);
@@ -24,6 +24,7 @@ public:
   PIX *pix;
 private:
   int width,height,bpp;
+  bool invert;
   int outrow,outcol;
   l_uint32 *data;
   int wpl;
@@ -33,7 +34,10 @@ private:
 };
 
 // {{{ PixOutput
-PixOutput::PixOutput(int width,int height,int bpp) : width(width),height(height),bpp(bpp),outrow(0),outcol(0)
+PixOutput::PixOutput(int width,int height,int bpp,bool invert)
+  : width(width),height(height),
+    bpp(bpp),invert(invert),
+    outrow(0),outcol(0)
 {
   pix=pixCreate(width,height,bpp);
   if (!pix) {
@@ -49,14 +53,19 @@ PixOutput::~PixOutput()
 }
 
 // TODO: format conversations; currently only for 1bpp
-void PixOutput::write(const char *buf,int len) 
+void PixOutput::write(const char *buf,int len)
 {
   const int bwidth=(width+7)/8;
   for (;outrow<height;outrow++,outcol=0) {
     l_uint32 *line=data+outrow*wpl;
-    for (;(outcol<bwidth)&&(len>0);outcol++,len--,buf++) {
-//      SET_DATA_BYTE(line,outcol,*buf);
-      SET_DATA_BYTE(line,outcol,*buf^0xff); // invert 1bpp, as unpdf internal representation has 0=black
+    if (invert) {
+      for (;(outcol<bwidth)&&(len>0);outcol++,len--,buf++) {
+        SET_DATA_BYTE(line,outcol,*buf);
+      }
+    } else {
+      for (;(outcol<bwidth)&&(len>0);outcol++,len--,buf++) {
+        SET_DATA_BYTE(line,outcol,*buf^0xff); // invert 1bpp, as unpdf internal representation has 0=black
+      }
     }
     if (!len) {
       break;
@@ -69,7 +78,7 @@ void PixOutput::write(const char *buf,int len)
   }
 }
 
-long PixOutput::pos() const 
+long PixOutput::pos() const
 {
   fprintf(stderr,"WARNING: PixOutput::pos() not yet implemented");
   return -1;
@@ -112,26 +121,56 @@ PIX *ourPix(/*const */PIX *pix,int rotate,int maxw,int maxh) // {{{   - rotate a
 
   return pixr;
 }
-// }}} 
+// }}}
 
 void do_it(PDF &pdf,int page) // {{{ PNG to stdout of first image (1bpp!) from >page from >pdf
 {
   const Dict &rd=pdf.pages[page].getResources();
-  ObjectPtr xo=rd.get(pdf,"XObject");
-  const Dict *xodict=dynamic_cast<const Dict *>(xo.get());
-  if (!xodict) {
+  DictPtr xodict=rd.getDict(pdf,"XObject",false);
+  if (xodict.empty()) {
     throw UsrError("No XObjects on page %d",page);
   }
   for (Dict::const_iterator it=xodict->begin();it!=xodict->end();++it) {
     ObjectPtr ptr=it.get(pdf);
     InStream *sval=dynamic_cast<InStream *>(ptr.get());
-    if ( (sval)&&(sval->getDict().getInt(pdf,"BitsPerComponent",0)==1) ) {
+    if (sval) {
+      const Dict &sdict=sval->getDict();
+
       // TODO: image interface... /Subtype/Image
-      int width=sval->getDict().getInt(pdf,"Width");
-      int height=sval->getDict().getInt(pdf,"Height");
+      if (sdict.getInt(pdf,"BitsPerComponent",0)!=1) {
+        continue;
+      }
+      ObjectPtr cso=sdict.get(pdf,"ColorSpace");
+      if (cso.empty()) {
+        throw UsrError("Missing /ColorSpace");
+      } else if (Name *nval=dynamic_cast<Name *>(cso.get())) {
+        if (strcmp(nval->value(),"DeviceGray")!=0) {
+          continue;
+        }
+      } else {
+        continue;
+      }
+
+      int width=sdict.getInt(pdf,"Width");
+      int height=sdict.getInt(pdf,"Height");
       int rotate=pdf.pages[page].getRotation();
-      PixOutput pxo(width,height,1);
-      
+
+      bool invert=false;
+      ArrayPtr dec=sdict.getArray(pdf,"Decode",false);
+      if (!dec.empty()) {
+        std::vector<float> decode=dec->getNums(pdf,2);
+        if ( (decode[0]==1.0)&&(decode[1]==0.0) ) {
+          invert=true;
+        } else if ( (decode[0]==0.0)&&(decode[1]==1.0) ) {
+          invert=false;
+        } else {
+          continue;
+//        throw UsrError("Unsupported Decode");
+        }
+      }
+
+      PixOutput pxo(width,height,1,invert);
+
       InputPtr sin=sval->open();
       copy(pxo,sin);
 
@@ -152,10 +191,10 @@ int main(int argc, char **argv)
   }
   try {
     FILEInput fi(argv[1]);
-    auto_ptr<PDF> pdf=open_pdf(fi);
+    std::auto_ptr<PDF> pdf=open_pdf(fi);
 
     do_it(*pdf,atoi(argv[2])-1);
-  } catch (exception &e) {
+  } catch (std::exception &e) {
     fprintf(stderr,"Exception: %s\n",e.what());
     return 1;
   }

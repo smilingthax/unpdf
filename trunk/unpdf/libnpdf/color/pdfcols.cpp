@@ -15,7 +15,6 @@
 #include "pdfsec.h"
 */
 
-using namespace std;
 using namespace PDFTools;
 
 // {{{ PDFTools::ColorSpace
@@ -56,7 +55,7 @@ ColorSpace *PDFTools::ColorSpace::parse(PDF &pdf,const Object &obj)
         }
       }
     }
-  } 
+  }
   if (!ret) {
     throw UsrError("Bad ColorSpace");
   }
@@ -72,7 +71,7 @@ PDFTools::SimpleColorSpace::SimpleColorSpace(CName type) : type(type)
 {
   if ( (type!=DeviceGray)&&(type!=DeviceRGB)&&(type!=DeviceCMYK) ) {
     throw UsrError("Bad colorspace type");
-  } 
+  }
 }
 
 int PDFTools::SimpleColorSpace::numComps() const
@@ -89,7 +88,7 @@ int PDFTools::SimpleColorSpace::numComps() const
 
 Object *PDFTools::SimpleColorSpace::toObj(OutPDF &outpdf) const
 {
-  return new Name(names[type],Name::STATIC);
+  return new Name(name(),Name::STATIC);
 }
 
 SimpleColorSpace *PDFTools::SimpleColorSpace::parse(const char *name)
@@ -111,25 +110,25 @@ SimpleColorSpace *PDFTools::SimpleColorSpace::parse(const char *name)
 // [ /CalGray << ... >> ]
 const char *PDFTools::CieColorSpace::names[]={"CalGray","CalRGB","Lab"};
 
-PDFTools::CieColorSpace::CieColorSpace(CName type,const vector<float> &white,
-                                                  const vector<float> &black,
-                                                  const vector<float> &gamma,
-                                                  const vector<float> &matrix,
-                                                  const vector<float> &range)
+PDFTools::CieColorSpace::CieColorSpace(CName type,const std::vector<float> &white,
+                                                  const std::vector<float> &black,
+                                                  const std::vector<float> &gamma,
+                                                  const std::vector<float> &matrix,
+                                                  const std::vector<float> &range)
                                        : type(type),white(white),black(black),gamma(gamma),
                                          matrix(matrix),range(range)
 {
   if ( (type!=CalGray)&&(type!=CalRGB)&&(type!=Lab) ) {
     throw UsrError("Bad colorspace type");
-  } 
+  }
   if ( (white.size()!=3)||(black.size()!=3) ) {
-    throw invalid_argument("Bad white-/blackpoint size");
+    throw std::invalid_argument("Bad white-/blackpoint size");
   }
   if (  ( (type==CalGray)&&(gamma.size()!=1) )||( (type==CalRGB)&&(gamma.size()!=3) )  ) {
-    throw invalid_argument("Bad gamma size");
+    throw std::invalid_argument("Bad gamma size");
   }
   if ( (type==Lab)&&(range.size()!=4) ) {
-    throw invalid_argument("Bad range size");
+    throw std::invalid_argument("Bad range size");
   }
 }
 
@@ -147,12 +146,12 @@ int PDFTools::CieColorSpace::numComps() const
 
 Object *PDFTools::CieColorSpace::toObj(OutPDF &outpdf) const
 {
-  auto_ptr<Dict> dict(new Dict);
+  std::auto_ptr<Dict> dict(new Dict);
 
-  dict->add("WhitePoint",Array::getNums(white),true);
+  dict->add("WhitePoint",Array::from(white),true);
 
   if ( (black[0]!=0)||(black[1]!=0)||(black[2]!=0) ) {
-    dict->add("BlackPoint",Array::getNums(black),true);
+    dict->add("BlackPoint",Array::from(black),true);
   }
 
   if (type==CalGray) {
@@ -161,33 +160,24 @@ Object *PDFTools::CieColorSpace::toObj(OutPDF &outpdf) const
     }
   } else if (type==CalRGB) {
     if ( (gamma[0]!=1)||(gamma[1]!=1)||(gamma[2]!=1) ) {
-      dict->add("Gamma",Array::getNums(gamma),true);
+      dict->add("Gamma",Array::from(gamma),true);
     }
     if ( (matrix[0]!=1)||(matrix[1]!=0)||(matrix[2]!=0)||
          (matrix[3]!=0)||(matrix[4]!=1)||(matrix[5]!=0)||
          (matrix[6]!=0)||(matrix[7]!=0)||(matrix[8]!=1) ) {
-      dict->add("Matrix",Array::getNums(matrix),true);
+      dict->add("Matrix",Array::from(matrix),true);
     }
   } else if (type==Lab) {
     if ( (range[0]!=-100)||(range[1]!=100)||(range[2]!=-100)||(range[3]!=100) ) {
-      dict->add("Range",Array::getNums(range),true);
+      dict->add("Range",Array::from(range),true);
     }
   }
 
-  auto_ptr<Array> ret(new Array);
-  ret->add(new Name(names[type],Name::STATIC),true);
+  std::auto_ptr<Array> ret(new Array);
+  ret->add(new Name(name(),Name::STATIC),true);
   ret->add(dict.release(),true);
 
   return ret.release();
-}
-
-vector<float> PDFTools::CieColorSpace::getNums(PDF &pdf,const ObjectPtr &obj,int num)
-{
-  const Array *aval=dynamic_cast<const Array *>(obj.get());
-  if (!aval) {
-    throw UsrError("Numeric array expected");
-  }
-  return aval->getNums(pdf,num);
 }
 
 CieColorSpace *PDFTools::CieColorSpace::parse(PDF &pdf,const char *name,const Array &aval)
@@ -204,49 +194,46 @@ CieColorSpace *PDFTools::CieColorSpace::parse(PDF &pdf,const char *name,const Ar
   if (iA==NUM_NAMES) {
     return NULL;
   }
-  ObjectPtr dobj=aval.get(pdf,1);
-  const Dict *dval=dynamic_cast<const Dict *>(dobj.get());
-  if (!dval) {
-    throw UsrError("Bad ColorSpace array for /%s",name);
-  }
+  // TODO: set error context = (/%s,name)
+  DictPtr dval=aval.getDict(pdf,1);
 
   // get params
-  vector<float> white,black;
-  white=getNums(pdf,(ObjectPtr_ref)dval->get(pdf,"WhitePoint"),3);
+  std::vector<float> white,black;
+  white=dval->getArray(pdf,"WhitePoint")->getNums(pdf,3);
   if (white[1]!=1) {
     throw UsrError("Bad WhitePoint");
   }
 
-  ObjectPtr bobj=dval->get(pdf,"BlackPoint");
+  ArrayPtr bobj=dval->getArray(pdf,"BlackPoint",false);
   if (!bobj.empty()) {
-    black=getNums(pdf,bobj,3);
+    black=bobj->getNums(pdf,3);
   } else {
     black.resize(3,0);
   }
- 
-  vector<float> gamma;
-  vector<float> matrix,range;
+
+  std::vector<float> gamma;
+  std::vector<float> matrix,range;
   if (iA==CalGray) {
     gamma.resize(1,1.0);
     gamma[0]=dval->getNum(pdf,"Gamma",1.0);
   } else if (iA==CalRGB) {
-    ObjectPtr cobj=dval->get(pdf,"Gamma");
+    ArrayPtr cobj=dval->getArray(pdf,"Gamma",false);
     if (!cobj.empty()) {
-      gamma=getNums(pdf,cobj,3);
+      gamma=cobj->getNums(pdf,3);
     } else {
       gamma.resize(3,1.0);
     }
-    ObjectPtr dobj=dval->get(pdf,"Matrix");
+    ArrayPtr dobj=dval->getArray(pdf,"Matrix",false);
     if (!dobj.empty()) {
-      matrix=getNums(pdf,dobj,9);
+      matrix=dobj->getNums(pdf,9);
     } else {
       matrix.resize(9,0);
       matrix[0]=matrix[4]=matrix[8]=1;
     }
   } else if (iA==Lab) {
-    ObjectPtr cobj=dval->get(pdf,"Range");
+    ArrayPtr cobj=dval->getArray(pdf,"Range",false);
     if (!cobj.empty()) {
-      range=getNums(pdf,cobj,4);
+      range=cobj->getNums(pdf,4);
     } else {
       range.resize(4,-100);
       range[1]=100;
@@ -264,9 +251,9 @@ const char *PDFTools::ICCColorSpace::names[]={"ICCBased"};
 
 PDFTools::ICCColorSpace::ICCColorSpace(CName type,int numComp,
                                        ColorSpace *altcs,
-                                       const vector<float> &range,
+                                       const std::vector<float> &range,
                                        InStream *metadata,
-                                       const vector<char> &iccdata)
+                                       const std::vector<char> &iccdata)
                                        : numComp(numComp),altcs(altcs),range(range),
                                          meta(new MemIOput,true),iccdata(iccdata)
 {
@@ -319,8 +306,8 @@ Object *PDFTools::ICCColorSpace::toObj(OutPDF &outpdf) const
   if (iccref.ref==0) {
     throw UsrError("OutPDF::output required before toObj"); // TODO: ... toObj(OutPDF &...)
   }
-  auto_ptr<Array> ret(new Array);
-  ret->add(new Name(names[type]),true);
+  std::auto_ptr<Array> ret(new Array);
+  ret->add(new Name(name()),true);
   ret->add(&iccref,false);
 
   return ret.release();
@@ -387,15 +374,15 @@ ICCColorSpace *PDFTools::ICCColorSpace::parse(PDF &pdf,const char *name,const Ar
 
   int numComp=stm->getDict().getInt(pdf,"N");
   ObjectPtr bobj=stm->getDict().get(pdf,"Alternate");
-  auto_ptr<ColorSpace> altcs;
+  std::auto_ptr<ColorSpace> altcs;
   if (!bobj.empty()) {
     altcs.reset(ColorSpace::parse(pdf,*bobj));
   }
 
-  vector<float> range;
-  ObjectPtr cobj=stm->getDict().get(pdf,"Range");
+  std::vector<float> range;
+  ArrayPtr cobj=stm->getDict().getArray(pdf,"Range",false);
   if (!cobj.empty()) {
-    range=CieColorSpace::getNums(pdf,cobj,4);
+    range=cobj->getNums(pdf,4);
   }
 
   InStream *meta=NULL;
@@ -441,12 +428,12 @@ private:
 // [ /Indexed  base  hival  lookup(string/stream) ]
 const char *PDFTools::IndexedColorSpace::names[]={"Indexed"};
 
-PDFTools::IndexedColorSpace::IndexedColorSpace(CName type,ColorSpace *base,const vector<unsigned char> &palette)
+PDFTools::IndexedColorSpace::IndexedColorSpace(CName type,ColorSpace *base,const std::vector<unsigned char> &palette)
                                               : type(type),base(base),palette(palette)
 {
   if (type!=Indexed) {
     throw UsrError("Bad colorspace type");
-  } 
+  }
   if ( (!base)||(dynamic_cast<IndexedColorSpace *>(base))||(dynamic_cast<PatternColorSpace *>(base)) ) {
     throw UsrError("Invalid base Colorspace");
   }
@@ -471,10 +458,10 @@ int PDFTools::IndexedColorSpace::numComps() const
 Object *PDFTools::IndexedColorSpace::toObj(OutPDF &outpdf) const
 {
   //   [ /Indexed base hival .string/stream ]
-  auto_ptr<Array> ret(new Array);
-  ret->add(new Name(names[type]),true);
-//  ret->add(base,false); //?? TODO ? 
-  ret->add(base->toObj(outpdf),true); //?? TODO ? 
+  std::auto_ptr<Array> ret(new Array);
+  ret->add(new Name(name()),true);
+//  ret->add(base,false); //?? TODO ?
+  ret->add(base->toObj(outpdf),true); //?? TODO ?
   ret->add(new NumInteger(palette.size()/base->numComps()),true);
 /*  if (ref.ref!=0) {
     ret->add(&ref,false);
@@ -516,7 +503,7 @@ IndexedColorSpace *PDFTools::IndexedColorSpace::parse(PDF &pdf,const char *name,
 
   ObjectPtr aobj=aval.get(pdf,1);
   assert(!aobj.empty());
-  auto_ptr<ColorSpace> base(ColorSpace::parse(pdf,*aobj.get()));
+  std::auto_ptr<ColorSpace> base(ColorSpace::parse(pdf,*aobj.get()));
 
   ObjectPtr cobj=aval.get(pdf,2);
   const NumInteger *nival=dynamic_cast<const NumInteger *>(cobj.get());
@@ -526,7 +513,7 @@ IndexedColorSpace *PDFTools::IndexedColorSpace::parse(PDF &pdf,const char *name,
   int hival=nival->value();
   const int clen=base->numComps()*(hival+1);
 
-  vector<unsigned char> palette;
+  std::vector<unsigned char> palette;
   ObjectPtr bobj=aval.get(pdf,3);
   if (const String *sval=dynamic_cast<const String *>(bobj.get())) {
     if ((int)sval->value().size()==clen) {

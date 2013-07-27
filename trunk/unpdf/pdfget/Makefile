@@ -1,4 +1,4 @@
-SOURCES=main.cpp
+SOURCES=main.cpp image.cpp
 EXEC=pdfget
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
@@ -15,10 +15,10 @@ $(SOURCES))))
 all: $(EXEC)
 ifneq "$(MAKECMDGOALS)" "clean"
   -include $(DEPENDS)
-endif 
+endif
 
 clean:
-	rm -f $(EXEC) $(OBJECTS) $(DEPENDS) 
+	rm -f $(EXEC) $(OBJECTS) $(DEPENDS)
 
 %.d: %.c
 	@$(SHELL) -ec '$(CXX) -MM $(CPPFLAGS) $< \

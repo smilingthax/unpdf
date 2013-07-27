@@ -6,6 +6,7 @@
 namespace PDFTools {
 
 #define EPS 1e-8
+// NOTE: this is also locale-safe
 void fminout(Output &out,float val) // {{{
 {
   // output only required number of digits

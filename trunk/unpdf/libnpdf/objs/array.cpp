@@ -115,6 +115,16 @@ void Array::set(int pos,const Object *obj,bool take) // {{{
 }
 // }}}
 
+Array *Array::from(const std::vector<float> &nums) // {{{
+{
+  std::auto_ptr<Array> ret(new Array);
+  for (int iA=0;iA<(int)nums.size();iA++) {
+    ret->add(new NumFloat(nums[iA]),true);
+  }
+  return ret.release();
+}
+// }}}
+
 ObjectPtr Array::get(PDF &pdf,int pos) const // {{{
 {
   if ( (pos<0)||(pos>=(int)arvec.size()) ) {
@@ -143,32 +153,9 @@ std::string Array::getString(PDF &pdf,int pos) const // {{{
   ObjectPtr fobj=get(pdf,pos);
   const String *sval=dynamic_cast<const String *>(fobj.get());
   if (!sval) {
-    throw UsrError("Required string index %d not found",pos);
+    throw UsrError("Array index %d is not a string",pos);
   }
   return std::string(sval->value()); // we must! copy
-}
-// }}}
-
-Array *Array::getNums(const std::vector<float> &nums) // {{{
-{
-  std::auto_ptr<Array> ret(new Array);
-  for (int iA=0;iA<(int)nums.size();iA++) {
-    ret->add(new NumFloat(nums[iA]),true);
-  }
-  return ret.release();
-}
-// }}}
-
-int Array::getUInt_D(int pos) const // {{{
-{ 
-  if ( (pos<0)||(pos>=(int)arvec.size()) ) {
-    throw UsrError("Bad index for array: %d",pos);
-  }
-  const NumInteger *ival=dynamic_cast<const NumInteger *>(arvec[pos].obj);
-  if ( (!ival)||(ival->value()<0) ) {
-    throw UsrError("array pos %d is not an unsigned integer",pos);
-  }
-  return ival->value();
 }
 // }}}
 
@@ -190,6 +177,47 @@ std::vector<float> Array::getNums(PDF &pdf,int num) const // {{{
     }
   }
   return ret;
+}
+// }}}
+
+DictPtr Array::getDict(PDF &pdf,int pos,bool required) const // {{{
+{
+  ObjectPtr obj=get(pdf,pos);
+  if (Dict *dval=dynamic_cast<Dict *>(obj.get())) {
+    obj.release();
+    return DictPtr(dval,obj.owns());
+  }
+  if (required) {
+    throw UsrError("Array index %d is not a Dict",pos);
+  }
+  return DictPtr();
+}
+// }}}
+
+ArrayPtr Array::getArray(PDF &pdf,int pos,bool required) const // {{{
+{
+  ObjectPtr obj=get(pdf,pos);
+  if (Array *aval=dynamic_cast<Array *>(obj.get())) {
+    obj.release();
+    return ArrayPtr(aval,obj.owns());
+  }
+  if (required) {
+    throw UsrError("Array index %d is not an Array",pos);
+  }
+  return ArrayPtr();
+}
+// }}}
+
+int Array::getUInt_D(int pos) const // {{{
+{
+  if ( (pos<0)||(pos>=(int)arvec.size()) ) {
+    throw UsrError("Bad index for array: %d",pos);
+  }
+  const NumInteger *ival=dynamic_cast<const NumInteger *>(arvec[pos].obj);
+  if ( (!ival)||(ival->value()<0) ) {
+    throw UsrError("Array index %d is not an unsigned integer",pos);
+  }
+  return ival->value();
 }
 // }}}
 

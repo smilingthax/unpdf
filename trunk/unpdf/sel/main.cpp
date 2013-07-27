@@ -7,18 +7,17 @@
 #include "libnpdf/pdf/outpdf.h"
 #include "exception.h"
 
-using namespace std;
 using namespace PDFTools;
 
 void do_it(PDF &pdf,int page,int pno) // {{{ stdout the images from >page to >page+>pno-1 from >pdf
 {
   FILEOutput fo(stdout);
   OutPDF outpdf(fo);
-  map<Ref,Ref> donemap;
+  std::map<Ref,Ref> donemap;
 
-  const Ref *oldpgref=dynamic_cast<const Ref *>(pdf.rootdict.find("Pages")); 
+  const Ref *oldpgref=dynamic_cast<const Ref *>(pdf.rootdict.find("Pages"));
   Ref pgsref=outpdf.newRef();
-  donemap.insert(make_pair(*oldpgref,pgsref));
+  donemap.insert(std::make_pair(*oldpgref,pgsref));
 
   Array kids;
   for (int iA=0;iA<pno;iA++) {
@@ -44,19 +43,19 @@ int main(int argc, char **argv)
   }
   try {
     FILEInput fi(argv[1]);
-    auto_ptr<PDF> pdf=open_pdf(fi);
+    std::auto_ptr<PDF> pdf=open_pdf(fi);
 
     int page=atoi(argv[2])-1,pno=atoi(argv[3]);
 //    do_it(*pdf,atoi(argv[2])-1,atoi(argv[3]));
 
     FILEOutput fo((argc==5)?argv[4]:NULL,stdout); // outfile given?
     OutPDF outpdf(fo);
-    map<Ref,Ref> donemap;
+    std::map<Ref,Ref> donemap;
     for (int iA=0;iA<pno;iA++) {
       outpdf.pages.add(outpdf,*pdf,page+iA,&donemap);
     }
     outpdf.finish();
-  } catch (exception &e) {
+  } catch (std::exception &e) {
     fprintf(stderr,"Exception: %s\n",e.what());
     return 1;
   }

@@ -1,4 +1,6 @@
 
 - filter need rework
+   -> filter chain construction with ".prepend()" (?)
+     e.g. how to pre-prepend something like a DecodeFilter?  (for /Decode array?)
 
 - IDEA: split img-filters (i.e. needing external libs) from those, that do not.

@@ -20,6 +20,7 @@ Page::Page(PagesTree &parent,PDF &pdf,const Ref &ref,Dict &dict,const Dict &reso
 {
   pdict._move_from(&dict);
   resdict._copy_from(resources);
+
   Object *obj=pdict.get("Contents");
   if (Array *aval=dynamic_cast<Array *>(obj)) {
     content._move_from(aval);

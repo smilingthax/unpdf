@@ -92,7 +92,7 @@ int PDFTools::ParsingInput::pread(char *buf,int len)
 // TODO FIXME: this is a classical tokenizer
 std::pair<const char *,int> PDFTools::ParsingInput::pread_to_delim(bool include_ws)
 {
-//  ??? = ignore leading ws? ... prepos 
+//  ??? = ignore leading ws? ... prepos
   const int len=prebuf.size()-prepos;
   if ( (prepos>0)&&(len>0) ) {
     memmove(&prebuf[0],&prebuf[prepos],len*sizeof(char));
@@ -155,7 +155,7 @@ bool PDFTools::ParsingInput::next(const char c,int prebuffer)
   return false;
 }
 
-bool PDFTools::ParsingInput::next(const char *str,int prebuffer) 
+bool PDFTools::ParsingInput::next(const char *str,int prebuffer)
 {
   const int len=strlen(str);
   if (prebuffer>1) {
@@ -170,7 +170,7 @@ bool PDFTools::ParsingInput::next(const char *str,int prebuffer)
   return false;
 }
 
-void PDFTools::ParsingInput::skip(bool required) 
+void PDFTools::ParsingInput::skip(bool required)
 {
   buffer(10);
   while (prepos<(int)prebuf.size()) {
@@ -227,7 +227,7 @@ float PDFTools::ParsingInput::readFrac(int intPart)
   // NOTE: the first character must be available ('buffer(1);') [covered in readInt: ...,15]
   float ret=0,scale=0.1;
   while (prepos<(int)prebuf.size()) {
-    if (!isdigit(prebuf[prepos])) { 
+    if (!isdigit(prebuf[prepos])) {
       // (? '-' in middle of number allowed in adobe reader???)
       break;
     }

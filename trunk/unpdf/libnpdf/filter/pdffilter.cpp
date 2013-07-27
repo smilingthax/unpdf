@@ -28,7 +28,6 @@
 // http://code.google.com/p/sumatrapdf/source (http://www.koders.com/c/fid48566E7D9AC20C5B1D0FDE836A80C726E318DDF5.aspx)
 
 using namespace PDFTools;
-using namespace std;
 
 // TODO: InStream should resolve (it's the dict owner)
 
@@ -157,7 +156,7 @@ void PDFTools::IFilter::init(const Array &filterspec,const Array &decode_params,
     const Dict *dval=NULL;
     if (decode_params.size()) {
       if (!decode_params[iB]) {
-        throw invalid_argument("NULL pointer");
+        throw std::invalid_argument("NULL pointer");
       }
       dval=dynamic_cast<const Dict *>(decode_params[iB]);
       if ( (!dval)&&(!isnull(decode_params[iB])) ) {
@@ -235,7 +234,7 @@ InputPtr PDFTools::IFilter::open(Input *read_from,bool take)
   return InputPtr(filter_chain[0],false,lateCloseFunc,&latein);
 }
 
-int PDFTools::IFilter::hasBpp() const
+int PDFTools::IFilter::hasBpc() const
 {
   if (dynamic_cast<const FaxFilter::FInput *>(filter_chain.front())) {
     return 1;
@@ -245,29 +244,23 @@ int PDFTools::IFilter::hasBpp() const
     return 8;
   } else if (dynamic_cast<const JpegFilter::FInput *>(filter_chain.front())) {
     return 8;
-/*  } else if (dynamic_cast<const LZWFilter::Predictor *>(filter_chain.front())) {
-    return ...; predictor.bpp*/
-/*  } else if (dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())) {
-    return ...; filter.bpp*/
+  } else if (const PredInput *px=dynamic_cast<const PredInput *>(filter_chain.front())) {
+    return px->hasBpc();
+/*  } else if (const JPXFilter::FInput *fx=dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())) {
+    return fx->hasBpc(); filter.bpp*/
   }
   return -1;
 }
 
-bool PDFTools::IFilter::isJPX() const
-{
-  return false;
-//  return (dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())!=NULL);
-}
-
-bool PDFTools::IFilter::isJPX(ColorSpace &cs) const
+const ColorSpace *PDFTools::IFilter::isJPX() const
 {
 /*
   if (JPXFilter::FInput *fx=dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())) {
-    cs=fx.cs;
-    return true;
+    assert(fx->cs);
+    return fx->cs;
   }
 */
-  return false;
+  return NULL;
 }
 
 const char *PDFTools::IFilter::hasCrypt() const
@@ -419,7 +412,7 @@ long AHexFilter::FInput::pos() const
 void AHexFilter::FInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in AHexFilter_Input is not supported");
+    throw std::invalid_argument("Reposition in AHexFilter_Input is not supported");
   }
   reset();
   read_from.pos(0);
@@ -596,7 +589,7 @@ long A85Filter::FInput::pos() const
 void A85Filter::FInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in A85Filter_Input is not supported");
+    throw std::invalid_argument("Reposition in A85Filter_Input is not supported");
   }
   reset();
   read_from.pos(0);
@@ -606,7 +599,7 @@ void A85Filter::FInput::pos(long pos)
 
 #define LINES_LEN 70
 // {{{ A85Filter::FOutput
-static inline void ENC5(unsigned int a,char *buf) 
+static inline void ENC5(unsigned int a,char *buf)
 {
   for (int iA=4;iA>=0;iA--) {
     buf[iA]=(a%85)+33;
@@ -625,7 +618,7 @@ void A85Filter::FOutput::write(const char *buf,int len)
   }
   char obuf[5];
 
-  const int cend=max(len-(4-ulen),0);
+  const int cend=std::max(len-(4-ulen),0);
   for (;len>cend;len--,buf++,ulen++) {
     ubuf|=((unsigned char)*buf<<(24-8*ulen));
   }
@@ -702,7 +695,7 @@ void A85Filter::makeOutput(OFilter &filter)
 
 // {{{ Pred{Input,Output}
 // {{{ PDFTools::PredInput
-PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpp,int predictor) 
+PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpp,int predictor)
   : read_from(read_from),
     color(color),bpp(bpp),
     pbyte((color*bpp+7)/8),
@@ -732,6 +725,11 @@ PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpp,int 
 PDFTools::PredInput::~PredInput()
 {
   delete read_from;
+}
+
+int PDFTools::PredInput::hasBpc() const
+{
+  return bpp;
 }
 
 void PDFTools::PredInput::tiff_decode()
@@ -805,7 +803,7 @@ int PDFTools::PredInput::read(char *buf,int len)
   int olen=0;
   while (len>0) {
     if (cpos!=(int)line[0].size()) {
-      const int clen=min(len,(int)line[0].size()-cpos);
+      const int clen=std::min(len,(int)line[0].size()-cpos);
       memcpy(buf,thisline+cpos,clen*sizeof(char));
       cpos+=clen;
       olen+=clen;
@@ -816,7 +814,7 @@ int PDFTools::PredInput::read(char *buf,int len)
       len-=clen;
     }
     if (ispng) {
-      swap(thisline,lastline);
+      std::swap(thisline,lastline);
       int res=read_from->read((char *)thisline+pbyte-1,line[0].size()-pbyte+1);
       if (res==0) {
         return olen;
@@ -848,7 +846,7 @@ long PDFTools::PredInput::pos() const
 void PDFTools::PredInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in PredInput is not supported");
+    throw std::invalid_argument("Reposition in PredInput is not supported");
   }
   thisline=&line[0][0];
   if (ispng) {
@@ -950,7 +948,7 @@ void PDFTools::PredOutput::tiff_encode()
   }
 }
 
-// lastline has to be uncoded previous line 
+// lastline has to be uncoded previous line
 void PDFTools::PredOutput::png_encode(unsigned char *dest,int type)
 {
   dest+=line[0].size()-pbyte;
@@ -1037,7 +1035,7 @@ void PDFTools::PredOutput::write(const char *buf,int len)
     len=strlen(buf);
   }
   while (len>0) {
-    const int clen=min(len,(int)line[0].size()-cpos);
+    const int clen=std::min(len,(int)line[0].size()-cpos);
     memcpy(thisline+cpos,buf,clen*sizeof(char));
     cpos+=clen;
     if (cpos<(int)line[0].size()) {
@@ -1053,7 +1051,7 @@ void PDFTools::PredOutput::write(const char *buf,int len)
       } else {
         write_to->write((const char *)&encd[type-1][0],encd[0].size());
       }
-      swap(lastline,thisline);
+      std::swap(lastline,thisline);
     } else {
       tiff_encode();
       write_to->write((const char *)thisline+pbyte,line[0].size()-pbyte);
@@ -1102,11 +1100,11 @@ Dict *LZWFilter::Params::getDict() const
   if ( (early==1)&&(predictor==1) ) {
     return NULL;
   }
-  auto_ptr<Dict> ret(new Dict);
+  std::auto_ptr<Dict> ret(new Dict);
 
   if (predictor!=1) {
     ret->add("Predictor",predictor);
-    
+
     if (color!=1) {
       ret->add("Colors",color);
     }
@@ -1130,11 +1128,11 @@ LZWFilter::FInput::FInput(Input &read_from,int early) : read_from(read_from),eof
 {
   state=init_lzw_read(early,readfunc_Input,&read_from);
   if (!state) {
-    throw bad_alloc();
+    throw std::bad_alloc();
   }
 }
 
-LZWFilter::FInput::~FInput() 
+LZWFilter::FInput::~FInput()
 {
   free_lzw(state);
 }
@@ -1162,7 +1160,7 @@ long LZWFilter::FInput::pos() const
 void LZWFilter::FInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in LZWFilter_Input is not supported");
+    throw std::invalid_argument("Reposition in LZWFilter_Input is not supported");
   }
   eof=false;
   restart_lzw(state);
@@ -1175,7 +1173,7 @@ LZWFilter::FOutput::FOutput(Output &write_to,int early) : write_to(write_to)
 {
   state=init_lzw_write(early,writefunc_Output,&write_to);
   if (!state) {
-    throw bad_alloc();
+    throw std::bad_alloc();
   }
 }
 
@@ -1297,7 +1295,7 @@ long FlateFilter::FInput::pos() const
 void FlateFilter::FInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in Inflate is not supported");
+    throw std::invalid_argument("Reposition in Inflate is not supported");
   }
   zstr.avail_in=0;
   zstr.avail_out=0;
@@ -1463,7 +1461,7 @@ int RLEFilter::FInput::read(char *buf,int len)
     }
     // execute run
     if (runlen>0) { // verbatim
-      const int clen=min(len,runlen);
+      const int clen=std::min(len,runlen);
       int res=read_from.read(buf,clen);
       if (res!=clen) {
         throw UsrError("RLE run ended prematurely");
@@ -1473,7 +1471,7 @@ int RLEFilter::FInput::read(char *buf,int len)
       runlen-=res;
       olen+=res;
     } else { // repeat  (runlen<0 esp. !=0)
-      const int clen=min(len,-runlen);
+      const int clen=std::min(len,-runlen);
       memset(buf,lastchar,clen*sizeof(char));
       buf+=clen;
       len-=clen;
@@ -1498,7 +1496,7 @@ long RLEFilter::FInput::pos() const
 void RLEFilter::FInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in RLEFilter_Input is not supported");
+    throw std::invalid_argument("Reposition in RLEFilter_Input is not supported");
   }
   reset();
   read_from.pos(0);
@@ -1629,7 +1627,7 @@ FaxFilter::Params::Params(const Dict &params) : maxdamage(0)
 {
   width=params.getInt_D("Columns",1728);
   kval=params.getInt_D("K",0);
-    
+
 //    int rows=params.getInt_D("Rows",0); // dynamic
   eol=params.getBool_D("EndOfLine",false);
   eba=params.getBool_D("EncodeByteAlign",false);
@@ -1643,7 +1641,7 @@ FaxFilter::Params::Params(const Dict &params) : maxdamage(0)
 
 Dict *FaxFilter::Params::getDict() const
 {
-  auto_ptr<Dict> ret(new Dict);
+  std::auto_ptr<Dict> ret(new Dict);
 
   if (width!=1728) {
     ret->add("Columns",width);
@@ -1674,10 +1672,10 @@ Dict *FaxFilter::Params::getDict() const
 }
 // }}}
 
-// NOTE: we have to keep 0 black and 1 white, for compatibility with other pdf filters. 
-//   therefore the default bitmap interpretation, which is also used by CCITT cannot be used internally
-//   that means, we have to invert on input/output.
-//   esp. /BlackIs1 is IMO badly named.
+// NOTE: We have to keep 0 black and 1 white, for compatibility with other pdf filters. (?)
+//   The default bitmap interpretation (1=black), which is also used by CCITT, can therefore not be used internally,
+//   and we have to invert on input/output.
+//   This can also be seen in /BlackIs1 [default false].
 // {{{ FaxFilter::FInput
 FaxFilter::FInput::FInput(Input &read_from,int kval,int width,bool invert) : read_from(read_from),invert(invert),eof(false)
 {
@@ -1686,11 +1684,11 @@ FaxFilter::FInput::FInput(Input &read_from,int kval,int width,bool invert) : rea
 
   state=init_g4_read(kval,width,readfunc_Input,&read_from);
   if (!state) {
-    throw bad_alloc();
+    throw std::bad_alloc();
   }
 }
 
-FaxFilter::FInput::~FInput() 
+FaxFilter::FInput::~FInput()
 {
   free_g4(state);
 }
@@ -1700,7 +1698,7 @@ int FaxFilter::FInput::read(char *buf,int len)
   int olen=0;
   const int bwidth=(int)outbuf.size();
   if (outpos!=bwidth) {
-    const int clen=min(len,bwidth-outpos);
+    const int clen=std::min(len,bwidth-outpos);
     memcpy(buf,&outbuf[outpos],clen*sizeof(char));
     outpos+=clen;
     buf+=clen;
@@ -1758,7 +1756,7 @@ long FaxFilter::FInput::pos() const
 void FaxFilter::FInput::pos(long pos)
 {
   if (pos!=0) {
-    throw invalid_argument("Reposition in FaxFilter_Input is not supported");
+    throw std::invalid_argument("Reposition in FaxFilter_Input is not supported");
   }
   outpos=outbuf.size();
   eof=false;
@@ -1776,7 +1774,7 @@ FaxFilter::FOutput::FOutput(Output &write_to,int kval,int width,bool invert) : w
 
   state=init_g4_write(kval,width,writefunc_Output,&write_to);
   if (!state) {
-    throw bad_alloc();
+    throw std::bad_alloc();
   }
 }
 
@@ -1792,7 +1790,7 @@ void FaxFilter::FOutput::write(const char *buf,int len)
   }
   const int bwidth=inbuf.size();
   if (inpos>0) {
-    const int clen=min(len,bwidth-inpos);
+    const int clen=std::min(len,bwidth-inpos);
     memcpy(&inbuf[inpos],buf,clen*sizeof(char));
     inpos+=clen;
     if (inpos<bwidth) { // -> len==clen
@@ -1874,7 +1872,7 @@ void FaxFilter::makeOutput(OFilter &filter,const Params &prm)
 }
 // }}}
 
-// TODO: 
+// TODO:
 // {{{ JBIG2Filter - JBIG2Decode
 const char *JBIG2Filter::name="JBIG2Decode";
 
@@ -1911,7 +1909,7 @@ Dict *JpegFilter::Params::getDict() const
   if (colortransform==-1) {
     return NULL;
   }
-  auto_ptr<Dict> ret(new Dict);
+  std::auto_ptr<Dict> ret(new Dict);
 
   ret->add("ColorTransform",colortransform);
 
@@ -2088,13 +2086,13 @@ JpegFilter::FInput::FInput(Input &read_from,int colortransform) : read_from(read
     // setjmp is redirected by init_src
   } catch (...) {
     delete cinfo->err;
-    jpeg_destroy_decompress(cinfo); 
-    delete cinfo; 
-    throw; 
+    jpeg_destroy_decompress(cinfo);
+    delete cinfo;
+    throw;
   }
 }
 
-JpegFilter::FInput::~FInput() 
+JpegFilter::FInput::~FInput()
 {
   ourj_errmgr *oer=(ourj_errmgr *)cinfo->err;
   if (setjmp(oer->jb)) {
@@ -2154,7 +2152,7 @@ int JpegFilter::FInput::read(char *buf,int len)
   int olen=0;
   const int bwidth=(int)outbuf.size();
   if (outpos!=bwidth) {
-    const int clen=min(len,bwidth-outpos);
+    const int clen=std::min(len,bwidth-outpos);
     memcpy(buf,&outbuf[outpos],clen*sizeof(char));
     outpos+=clen;
     buf+=clen;
@@ -2217,7 +2215,7 @@ void JpegFilter::FInput::pos(long pos)
   }
 
   if (pos!=0) {
-    throw invalid_argument("Reposition in JpegFilter_Input is not supported");
+    throw std::invalid_argument("Reposition in JpegFilter_Input is not supported");
   }
   if (!outbuf.empty()) { // header read
     if (cinfo->output_scanline==cinfo->output_height) { // EOF
@@ -2237,7 +2235,7 @@ JpegFilter::FOutput::FOutput(Output &write_to,int quality,int width,int height,i
 {
   cinfo=new jpeg_compress_struct;
   cinfo->err=NULL;
-    
+
   try {
     ourj_errmgr *oer=new ourj_errmgr;
     cinfo->err=jpeg_std_error(&oer->super);
@@ -2315,11 +2313,11 @@ void JpegFilter::FOutput::write(const char *buf,int len)
 
   if (inpos==-1) { // write header
     jpeg_start_compress(cinfo,TRUE);
-    inpos=0; 
+    inpos=0;
   }
   const int bwidth=width*color;
   if (inpos>0) {
-    const int clen=min(len,bwidth-inpos);
+    const int clen=std::min(len,bwidth-inpos);
     memcpy(&inbuf[inpos],buf,clen*sizeof(char));
     inpos+=clen;
     if (inpos<bwidth) { // -> len==clen
