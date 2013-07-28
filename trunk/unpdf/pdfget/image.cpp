@@ -155,6 +155,9 @@ InvertFilter::FInput::FInput(Input &read_from,int width,bool invert) // {{{
 int InvertFilter::FInput::read(char *buf,int len) // {{{
 {
   int res=read_from.read(buf,len);
+  if (!invert) {
+    return res;
+  }
 
   len=res*8;
   while (wpos<=len) {

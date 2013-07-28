@@ -247,7 +247,7 @@ int PDFTools::IFilter::hasBpc() const
   } else if (const PredInput *px=dynamic_cast<const PredInput *>(filter_chain.front())) {
     return px->hasBpc();
 /*  } else if (const JPXFilter::FInput *fx=dynamic_cast<const JPXFilter::FInput *>(filter_chain.front())) {
-    return fx->hasBpc(); filter.bpp*/
+    return fx->hasBpc(); filter.bpc*/
   }
   return -1;
 }
@@ -695,14 +695,14 @@ void A85Filter::makeOutput(OFilter &filter)
 
 // {{{ Pred{Input,Output}
 // {{{ PDFTools::PredInput
-PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpp,int predictor)
+PDFTools::PredInput::PredInput(Input *read_from,int width,int color,int bpc,int predictor)
   : read_from(read_from),
-    color(color),bpp(bpp),
-    pbyte((color*bpp+7)/8),
-    pshift((color*bpp)%8),
+    color(color),bpc(bpc),
+    pbyte((color*bpc+7)/8),
+    pshift((color*bpc)%8),
     ispng(predictor>=10)
 {
-  const int bwidth=(color*bpp*width+7)/8;
+  const int bwidth=(color*bpc*width+7)/8;
   try {
     assert(read_from);
     assert(  (predictor==2)||( (predictor>=10)&&(predictor<=15) )  );
@@ -729,32 +729,32 @@ PDFTools::PredInput::~PredInput()
 
 int PDFTools::PredInput::hasBpc() const
 {
-  return bpp;
+  return bpc;
 }
 
 void PDFTools::PredInput::tiff_decode()
 {
-  if (bpp==1) {
+  if (bpc==1) {
     for (int iA=pbyte;iA<(int)line[0].size();iA++) {
       thisline[iA]^=((thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1])>>pshift;
     }
-  } else if (bpp==2) {
+  } else if (bpc==2) {
     for (int iA=pbyte;iA<(int)line[0].size();iA++) {
       const unsigned char prev=((thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1])>>pshift;
       thisline[iA]=(((thisline[iA]&0xcc)+(prev&0xcc))&0xcc)|
                    (((thisline[iA]&0x33)+(prev&0x33))&0x33);
     }
-  } else if (bpp==4) {
+  } else if (bpc==4) {
     for (int iA=pbyte;iA<(int)line[0].size();iA++) {
       const unsigned char prev=((thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1])>>pshift;
       thisline[iA]=(((thisline[iA]&0xf0)+(prev&0xf0))&0xf0)|
                    (((thisline[iA]&0x0f)+(prev&0x0f))&0x0f);
     }
-  } else if (bpp==8) {
+  } else if (bpc==8) {
     for (int iA=pbyte;iA<(int)line[0].size();iA++) {
       thisline[iA]+=thisline[iA-pbyte];
     }
-  } else if (bpp==16) {
+  } else if (bpc==16) {
     for (int iA=pbyte;iA<(int)line[0].size();iA+=2) {
       int c=(thisline[iA]<<8)|thisline[iA+1];
       c-=(thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1];
@@ -860,22 +860,22 @@ void PDFTools::PredInput::pos(long pos)
 // }}}
 
 // {{{ PDFTools::PredOutput
-PDFTools::PredOutput::PredOutput(Output *write_to,int width,int color,int bpp,int predictor)
+PDFTools::PredOutput::PredOutput(Output *write_to,int width,int color,int bpc,int predictor)
   : write_to(write_to),
 //    width(width),
-    color(color),bpp(bpp),predictor(predictor),
-    pbyte((color*bpp+7)/8),
-    pshift((color*bpp)%8),
+    color(color),bpc(bpc),predictor(predictor),
+    pbyte((color*bpc+7)/8),
+    pshift((color*bpc)%8),
     ispng(predictor>=10)
 {
-  const int bwidth=(color*bpp*width+7)/8;
+  const int bwidth=(color*bpc*width+7)/8;
   try {
     assert(write_to);
     assert(  (predictor==2)||( (predictor>=10)&&(predictor<=15) )  );
 
     this->predictor=16; // special internal value: find optimum for each row
 /* TODO
-    if (bpp<8) { // fixed
+    if (bpc<8) { // fixed
       this->predictor=10;
     } */
 
@@ -910,23 +910,23 @@ PDFTools::PredOutput::~PredOutput()
 
 void PDFTools::PredOutput::tiff_encode()
 {
-  if (bpp==1) {
+  if (bpc==1) {
     for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
       thisline[iA]^=((thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1])>>pshift;
     }
-  } else if (bpp==2) {
+  } else if (bpc==2) {
     for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
       const unsigned char prev=((thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1])>>pshift;
       thisline[iA]=(((thisline[iA]&0xcc)+0x10-(prev&0xcc))&0xcc)|
                    (((thisline[iA]&0x33)+0x44-(prev&0x33))&0x33);
     }
-  } else if (bpp==4) {
+  } else if (bpc==4) {
     for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
       const unsigned char prev=((thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1])>>pshift;
       thisline[iA]=(((thisline[iA]&0xf0)-(prev&0xf0))&0xf0)|
                    (((thisline[iA]&0x0f)-(prev&0x0f))&0x0f);
     }
-  } else if (bpp==8) {
+  } else if (bpc==8) {
 #if 0
     for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
       thisline[iA]-=thisline[iA-pbyte];
@@ -938,7 +938,7 @@ void PDFTools::PredOutput::tiff_encode()
       *dst-=*src;
     }
 #endif
-  } else if (bpp==16) {
+  } else if (bpc==16) {
     for (int iA=line[0].size()-2;iA>=pbyte;iA-=2) {
       int c=(thisline[iA]<<8)|thisline[iA+1];
       c-=(thisline[iA-pbyte]<<8)|thisline[iA-pbyte+1];

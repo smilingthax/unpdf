@@ -281,9 +281,9 @@ ColorSpace *getColorspaceForImage(PDF &pdf,const Dict &dict,bool required=true) 
 
 bool getMaskDecode(const std::vector<float> &decode) // {{{
 {
-  if ( (decode[0]==0.0)&&(decode[1]==1.0) ) {
+  if ( (decode[0]==0.0f)&&(decode[1]==1.0f) ) {
     return false;
-  } else if ( (decode[0]==1.0)&&(decode[1]==0.0) ) {
+  } else if ( (decode[0]==1.0f)&&(decode[1]==0.0f) ) {
     return true;
   }
   throw UsrError("Bad /Decode array [%f, %f] for /ImageMask");
@@ -434,10 +434,16 @@ int output_image(Output &fo,PDF &pdf,InStream &stmval,bool compressed) // {{{
     return UNSUPPORTED;
   }
 
+  bool invert_1bpp=false;
   if (!decode.empty()) {
-    // TODO? check for standard-decode, check for b/w-invert?
-    fprintf(stderr,"/Decode not supported\n");
-    return UNSUPPORTED;
+    if ( (bpc==1)&&(colorComponents==1)&&
+         (decode[0]==1.0f)&&(decode[1]==0.0f) ) {
+      invert_1bpp=true;
+    // TODO? else if (standard-decode)
+    } else {
+      fprintf(stderr,"/Decode not supported\n");
+      return UNSUPPORTED;
+    }
   }
 
   if ( (compressed)&&(filter)&&
@@ -489,7 +495,7 @@ if (dynamic_cast<FaxFilter::FInput *>(filter->chain().front())) {
                   "%d %d\n",
                   width,height);
 //        more.reset(new DecodeFilter::FInput(in,width,colorComponents,bpc,&decode,true),true);
-        more.reset(new InvertFilter::FInput(in,width),true);
+        more.reset(new InvertFilter::FInput(in,width,!invert_1bpp),true); // we must invert so that 1=>black, like in PBM
         break;
       case 8:
       case 16:
