@@ -1,4 +1,4 @@
-SOURCES=main.cpp image.cpp
+SOURCES=main.cpp image.cpp imagedecoder.cpp
 EXEC=pdfget
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp

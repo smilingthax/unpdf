@@ -487,9 +487,9 @@ if (dynamic_cast<FaxFilter::FInput *>(filter->chain().front())) {
       case 1:
         fo.printf("P4\n"
                   "%d %d\n",
-                  width, height);
-// TODO? padding correction needed?
-//        more.reset(new DecodeFilter::FInput(in,colorComponents,bpc,&decode,true),true);
+                  width,height);
+//        more.reset(new DecodeFilter::FInput(in,width,colorComponents,bpc,&decode,true),true);
+        more.reset(new InvertFilter::FInput(in,width),true);
         break;
       case 8:
       case 16:
