@@ -83,7 +83,7 @@ namespace PDFTools {
   };
   class PredInput : public Input {
   public:
-    PredInput(Input *read_from,int width,int color,int bpp,int predictor); // takes; >predictor!=1
+    PredInput(Input *read_from,int width,int color,int bpc,int predictor); // takes; >predictor!=1
     ~PredInput();
 
     int read(char *buf,int len);
@@ -101,13 +101,13 @@ namespace PDFTools {
     unsigned char *lastline,*thisline;
     int cpos;
     // int width,predictor;
-    int color,bpp;
+    int color,bpc;
     int pbyte,pshift;
     bool ispng;
   };
   class PredOutput : public Output {
   public:
-    PredOutput(Output *write_to,int width,int color,int bpp,int predictor); // takes, >predictor!=1
+    PredOutput(Output *write_to,int width,int color,int bpc,int predictor); // takes, >predictor!=1
     ~PredOutput();
 
     void write(const char *buf,int len);
@@ -125,7 +125,7 @@ namespace PDFTools {
     unsigned char *lastline,*thisline;
     int cpos;
     // int width;
-    int color,bpp,predictor;
+    int color,bpc,predictor;
     int pbyte,pshift;
     bool ispng;
   };
