@@ -17,3 +17,4 @@ fastmatch.h: ELSE with return true;
 
 
 ? statepp.hpp:  STATEPP_MAKE_TRAITEVAL
+  sfinae with (State &) and (...) probably warns: can not pass non-trivially-copyable class through ... (-> use State * instead)

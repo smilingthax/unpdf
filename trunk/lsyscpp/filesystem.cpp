@@ -107,12 +107,25 @@ void FS::create_dir(const string &dirname) // {{{
 string FS::joinPath(const string &a1,const string &a2) // {{{
 {
   if (is_abspath(a2)) { // i.e. starts with '/'
+    // TODO? simplify "//path" ?:  return string(a2,a2.find_first_not_of('/'));
     return a2;
-//    return string(a2,a2.find_first_not_of('/')-1);
   }
   string ret(a1,0,a1.find_last_not_of('/')+1);
   ret.push_back('/');
   ret.append(a2);
+  return ret;
+}
+// }}}
+
+string FS::joinPathRel(const string &a1,const string &a2) // {{{
+{
+  string ret(a1,0,a1.find_last_not_of('/')+1);
+  ret.push_back('/');
+  if (is_abspath(a2)) { // i.e. starts with '/'
+     ret.append(a2,a2.find_first_not_of('/'), string::npos);
+  } else {
+     ret.append(a2);
+  }
   return ret;
 }
 // }}}
