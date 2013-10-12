@@ -24,8 +24,9 @@ namespace FS {
   bool exists(const std::string &filename);
   bool is_file(const std::string &path);
   bool is_dir(const std::string &path);
-  void create_dir(const std::string &dirname); 
+  void create_dir(const std::string &dirname);
   std::string joinPath(const std::string &a1,const std::string &a2); // will return only a2, if absolute.
+  std::string joinPathRel(const std::string &a1,const std::string &a2); // will always concatenate
   std::pair<std::string,std::string> extension(const std::string &filename);
 
   inline std::string abspath(const std::string &filename) { return joinPath(cwd(),filename); }
@@ -38,11 +39,11 @@ namespace FS {
     return (!name.empty())&&(name[0]=='/');
   }
 
-#if defined(_LARGEFILE64_SOURCE) && !defined(__APPLE__) 
+#if defined(_LARGEFILE64_SOURCE) && !defined(__APPLE__)
   std::string humanreadable_size(off64_t size);
 #endif
   std::string humanreadable_size(off_t size);
-  
+
   struct dstat_t {
     long long sum_space;
     long long free_space;
