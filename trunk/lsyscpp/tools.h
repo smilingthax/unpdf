@@ -11,7 +11,7 @@ inline char *a_vsprintf(const char *fmt,va_list ap) // {{{
   char *str,*tmp;
   int len=150,need;
   va_list va;
-  
+
   str=(char *)malloc(len);
   if (!str) {
     throw std::bad_alloc();
@@ -46,7 +46,7 @@ inline char *a_sprintf(const char *fmt,...) // {{{
   va_start(va,fmt);
   ret=a_vsprintf(fmt,va);
   va_end(va);
- 
+
   return ret;
 }
 // }}}
@@ -58,7 +58,7 @@ inline std::string s_vsprintf(const char *fmt,va_list ap) // {{{
   va_list va;
 
   str.resize(150,0);
-  
+
   while (1) {
     va_copy(va,ap);
     need=vsnprintf(&str[0],str.size(),fmt,va);
@@ -84,16 +84,16 @@ inline std::string s_sprintf(const char *fmt,...) // {{{
   va_start(va,fmt);
   ret=s_vsprintf(fmt,va);
   va_end(va);
- 
+
   return ret;
 }
 // }}}
 
 inline char *a_strtr(const char *string,const char **trFrom,const char **trTo) // {{{
-{ 
+{
   int iA,iB,len=0,startDelete=-1;
   char *ret=NULL;
- 
+
   for (iB=0;trFrom[iB];iB++) {
     if (!trTo[iB]) {
       startDelete=iB;
@@ -144,10 +144,10 @@ inline char *a_strtr(const char *string,const char **trFrom,const char **trTo) /
 // }}}
 
 inline std::string s_strtr(const std::string &string,const char **trFrom,const char **trTo) // {{{
-{ 
+{
   int iA,iB,startDelete=-1;
   std::string ret;
- 
+
   for (iB=0;trFrom[iB];iB++) {
     if (!trTo[iB]) {
       startDelete=iB;
