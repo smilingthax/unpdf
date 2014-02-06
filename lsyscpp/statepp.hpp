@@ -72,7 +72,7 @@ namespace StatePP {
     template <typename Base>
     struct GetBase : boost::static_visitor<Base&> {
       Base &operator()(Base &s) const { return s; }
-    }; 
+    };
   } // namespace detail
 
   template <typename Base,typename StateVariant>
@@ -203,7 +203,7 @@ namespace StatePP {
 // Example: STATEPP_MAKE_GETMEMBER(ma,BoundMa);
 //     Use: get_BoundMa<void(int)>(state)(42);
 //     Use: auto b=get_BoundMa<void(int)>(&state); // std::function, actually (also in previous line, but there surely !=false)
-//          if (!b) ... else b(42); 
+//          if (!b) ... else b(42);
 
 // Example: STATEPP_MAKE_GETMEMBER(bl,BoundBl);
 //     Use: const int *k=get_BoundBl<const int>(&state); // null if not there
@@ -223,7 +223,7 @@ namespace StatePP {
         v=t(s,e);
         return true;
       }
- 
+
       bool operator()(...) const { return false; }
     private:
       StateVisitor &v;
@@ -231,24 +231,24 @@ namespace StatePP {
       Transitions t;
     };
   } // namespace detail
- 
+
   // TODO: fail on ref, bool on ptr (state)
   template <class Transitions=Trans,class StateVisitor,class Event>
   bool next_state(StateVisitor &state,Event &&event,Transitions &&trans=Transitions()) {
     return boost::apply_visitor(detail::NextState<StateVisitor,Event,Transitions>(state,std::forward<Event>(event),std::forward<Transitions>(trans)),state);
   }
- 
+
 // TODO? what with const
 #define TTR_0(S,E,Snew)      Snew operator()(S &s,const E &e) const { return Snew(); }
 #define TTR_1(S,E,Snew,code) Snew operator()(S &s,const E &e) code
 #define TTR_HLP(arg1,arg2,arg3,arg4,func,...) func
 #define TTR(...) TTR_HLP(__VA_ARGS__,TTR_1,TTR_0)(__VA_ARGS__)
-  
+
   namespace detail {
     template <class StateVisitor,class Event,class Transitions>
     struct NextStateStatic : boost::static_visitor<bool> {
       NextStateStatic(StateVisitor &v,Event e) : v(v),e(e) {}
- 
+
       template <class State>
 #ifndef TTS_BUG
       bool operator()(State &s,char (*)[sizeof(std::declval<Transitions>().next(std::declval<State&>(),std::declval<Event>()))]=0) const {
@@ -258,14 +258,14 @@ namespace StatePP {
         v=Transitions::next(s,e);
         return true;
       }
- 
+
       bool operator()(...) const { return false; }
     private:
       StateVisitor &v;
       Event e;
     };
   } // namespace detail
- 
+
   template <class Transitions=Trans,class StateVisitor,class Event>
   bool next_state_static(StateVisitor &state,Event &&event) {
     return boost::apply_visitor(detail::NextStateStatic<StateVisitor,Event,Transitions>(state,std::forward<Event>(event)),state);

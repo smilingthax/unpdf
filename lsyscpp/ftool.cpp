@@ -38,7 +38,7 @@ string &s_fgets(FILE *f,string &ret,int maxlen,int delim)
   while ((c=fgetc(f))!=EOF) {
     ret.push_back(c);
     if (c==delim) {
-      return ret; 
+      return ret;
     }
     if ( (maxlen!=-1)&&((int)ret.size()>=maxlen) ) {
       throw FS_except(EFBIG);

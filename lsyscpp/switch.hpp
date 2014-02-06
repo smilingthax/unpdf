@@ -22,16 +22,16 @@
 
 3)
   YourType k;
-  auto ret=Switch<int,int(int)>(123,{ 
+  auto ret=Switch<int,int(int)>(123,{
     {234,[](int x){ printf("0 %d\n",x); return 14; }}
     {123,[&k](int x){ printf("1 %d\n",x); k=...; return 21; }},
     {35,[](int x){ printf("2 %d\n",x); return 23; }},
   },std::greater<int>());
   printf("%d\n",ret); // int() if not matched
 
-4) 
+4)
   #include <boost/optional.hpp>
-  auto ret=Switch<int,boost::optional<int>(int)>(133,{ 
+  auto ret=Switch<int,boost::optional<int>(int)>(133,{
     {35,[](int x){ printf("0 %d\n",x); return 23; }},
     {123,[&x](int x){ printf("1 %d\n",x); return 21; }},
     {234,[](int x){ printf("2 %d\n",x); return 14; }}
@@ -62,7 +62,7 @@ namespace detail {
 } // namespace detail
 
 template <typename KeyType,typename Signature,typename Comp=std::less<KeyType>>
-typename std::function<Signature>::result_type 
+typename std::function<Signature>::result_type
   Switch(const KeyType &value,std::initializer_list<std::pair<const KeyType,std::function<Signature>>> sws,Comp comp=Comp())
 {
   typedef std::pair<const KeyType &,std::function<Signature>> KVT;

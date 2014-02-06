@@ -12,7 +12,7 @@ using namespace std;
 
 // {{{ Cmdline::cmdopt
 Cmdline::cmdopt::cmdopt(const char *_shortopt,const char *_longopt,type_t _type,bool *_bval,int *_ival,string *_strval,vector<int> *_ivec,vector<string> *_strvec,const char *_usagestr)
-    : shortopt(_shortopt?_shortopt:""),longopt(_longopt?_longopt:""),type(_type),usagestr(_usagestr?_usagestr:"") 
+    : shortopt(_shortopt?_shortopt:""),longopt(_longopt?_longopt:""),type(_type),usagestr(_usagestr?_usagestr:"")
 {
   switch (type) {
   case TYPE_USAGE:
@@ -41,7 +41,7 @@ Cmdline::cmdopt::cmdopt(const char *_shortopt,const char *_longopt,type_t _type,
   }
 }
 
-void Cmdline::cmdopt::clear() 
+void Cmdline::cmdopt::clear()
 {
   switch (type) {
   case TYPE_USAGE:
@@ -339,7 +339,7 @@ bool Cmdline::parse_fromfile(const std::string &argsfile,const char *pname)
     // TODO? quoting error: errno==EBADMSG
     return false;
   }
-  
+
   vector<const char *> argv;
   argv.resize(args.size()+1,NULL);
   argv[0]=pname;
@@ -362,7 +362,7 @@ bool Cmdline::parse_fromfile(const std::string &argsfile,const char *pname)
 std::vector<string> Cmdline::get_fromfile(const std::string &argsfile) const
 {
   vector<string> args;
-  
+
   FILE *f;
   if ((f=fopen(argsfile.c_str(),"r"))==NULL) {
     args.clear();
@@ -371,7 +371,7 @@ std::vector<string> Cmdline::get_fromfile(const std::string &argsfile) const
   }
 #define BUFSIZE 1024
   char buf[BUFSIZE];
-  
+
   enum { NONE,DQUOTE,SQUOTE } qmode=NONE;
   string curarg;
   bool active=false;
@@ -381,7 +381,7 @@ std::vector<string> Cmdline::get_fromfile(const std::string &argsfile) const
     }
     int iA=0;
     if (qmode==NONE) {
-      iA=strspn(buf," \n\t"); 
+      iA=strspn(buf," \n\t");
       if (buf[iA]=='#') { // comment
         continue;
       }

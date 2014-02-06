@@ -64,6 +64,6 @@ int main(int argc,char **argv)
   } catch (exception &ex) {
     printf("Ex: %s\n",ex.what());
   }
-  
+
   return 0;
 }

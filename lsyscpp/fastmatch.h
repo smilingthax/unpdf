@@ -16,11 +16,11 @@ SUBMATCH_END("utext")
 ELSE
   c code ...
 ENDMATCH(name)
-  
+
   Note: The match-texts MUST be sorted ascending!
 
   This will generate:
-bool name(char *&_buf);  (to be exact: template<class T> bool name(T &_buf)) 
+bool name(char *&_buf);  (to be exact: template<class T> bool name(T &_buf))
   resp:
 template<typename UserData>
 bool name(char *&_buf,UserData &user);
@@ -32,7 +32,7 @@ bool name(char *&_buf,UserData &user);
   };
 
   Advanced:
-ELSE_NULL  sets _buf==NULL  
+ELSE_NULL  sets _buf==NULL
   The else-part can also be written directly after NEWMATCH, omitting the ELSE keyword.
 
 CASE(strcmp(_buf,"text"))   is what MATCH("text") is an abbreviation for.

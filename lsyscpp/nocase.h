@@ -17,7 +17,7 @@ struct lt_nocase_str : public std::binary_function<std::string, std::string, boo
   const std::ctype<char>& ct;
 
   lt_nocase_str(const std::locale& L = std::locale::classic()) : loc(L), ct(std::use_facet<std::ctype<char> >(loc)) {}
-  
+
   bool operator()(const std::string& x, const std::string& y) const {
     return std::lexicographical_compare(x.begin(), x.end(),
                                         y.begin(), y.end(),

@@ -7,7 +7,7 @@ using namespace std;
 UsrError::UsrError(const char *_err,...) throw()
 {
   va_list ap;
-  
+
   va_start(ap,_err);
   try {
     err=a_vsprintf(_err,ap);
