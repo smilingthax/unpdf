@@ -9,7 +9,7 @@
   It is used by deriving your specialized class from it.
 
   The usual procedure is to make the variables for use in your programm public.
-  In the constructor add/add_param the variables with the respective options 
+  In the constructor add/add_param the variables with the respective options
   and usage-text. You may also want to override the parse() function
   to first call the base-class's parse() and then do validity checking of the parameters.
 
@@ -49,7 +49,7 @@ protected:
   void do_clear(const char *progname=NULL);
   bool do_parse(int argc,char const *const *argv);
   std::vector<std::string> get_fromfile(const std::string &argsfile) const;
-  
+
   std::string usage_opts() const;
   void usage(const char *pname=NULL) const;
   std::vector<std::string> opt_opts;
@@ -58,14 +58,14 @@ private:
   bool do_optopt;
   struct cmdopt {
     enum type_t { TYPE_USAGE, TYPE_BOOL, TYPE_COUNT, TYPE_INT, TYPE_STRING, TYPE_MULTIINT, TYPE_MULTISTRING };
-    
+
     cmdopt(const char *_shortopt,const char *_longopt,type_t _type,
            bool *_bval,int *_ival,std::string *_strval,std::vector<int> *_ivec,std::vector<std::string> *_strvec,const char *_usagestr);
     void clear();
     bool do_opt();
     bool parse_opt(const char *arg,int pos);
     bool is_default() const;
-    
+
     std::string shortopt,longopt;
     type_t type;
     union {
@@ -81,7 +81,7 @@ private:
   std::string progname; // filled after parse()
   std::string usage_pre,usage_post;
   std::string usage_cmdlopts; // text after programmname; default "[options]". Interesting esp. for opt_opts
-  
+
   void check_param(const char *shortopt,const char *longopt) const;
   template <std::string Cmdline::cmdopt::*lsopt>
   bool parse_one(int argc,char const *const *argv,int &cur_arg,int &pos);

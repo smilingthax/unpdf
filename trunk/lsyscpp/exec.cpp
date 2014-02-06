@@ -28,7 +28,7 @@ if (...child) {
       close(fd);
     }
   }
-    
+
   execv(exe, argv);
 
   const char msg[] = "exec failed";
@@ -82,7 +82,7 @@ int Sys::execute(const char *execpath,...)
 {
   va_list ap;
   vector<const char *> args;
-  
+
   string arg0=FS::basename(string(execpath));
   args.push_back(arg0.c_str());
 
@@ -93,7 +93,7 @@ int Sys::execute(const char *execpath,...)
     args.push_back(tmp); // we also require trailing NULL in >args
   } while (tmp);
   va_end(ap);
- 
+
   return do_exec(execpath,&args[0]);
 }
 
