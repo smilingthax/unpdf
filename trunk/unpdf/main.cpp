@@ -91,9 +91,9 @@ auto_ptr<Object> robj;
       // TODO: /XRefStm in trailer for xref stream
 const Ref *inforf=dynamic_cast<const Ref *>(pdf->trdict.find("Info"));
 if (inforf) {
-  printf("%d pages, Info: %d\n",pdf->pages.size(),inforf->ref);
+  printf("%zu pages, Info: %d\n",pdf->pages.size(),inforf->ref);
 } else {
-  printf("%d pages, No info\n",pdf->pages.size());
+  printf("%zu pages, No info\n",pdf->pages.size());
 }
 for (int iA=0;iA<(int)pdf->pages.size();iA++) {
   printf("%d ",pdf->pages[iA].getReadRef()->ref);
@@ -110,7 +110,7 @@ printf("\n");
 
 if (argc==3) {
   robj.reset(pdf->fetch(Ref(atoi(argv[2]),0)));
-} else 
+} else
   robj.reset(pdf->fetch(Ref(4,0)));
       assert(robj.get());
 
@@ -126,7 +126,7 @@ if (stmval) {
     char buf[4];
     // CMYK -> RGB
     fo.printf("P6\n937 461\n255\n");
-    for (int iA=0;iA<937*461;iA++) { 
+    for (int iA=0;iA<937*461;iA++) {
       int res=ip.read(buf,4);
       assert(res==4);
       unsigned char cc=buf[0],cm=buf[1],cy=buf[2],ck=buf[3];
@@ -142,7 +142,7 @@ if (stmval) {
   }
 } else
   dump(robj.get());
-  
+
 
 /*
       assert(stmval);

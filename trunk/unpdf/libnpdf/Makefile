@@ -22,13 +22,13 @@ clean:
 	@for i in $(SUBDIRS); do \
 	  $(MAKE) -C $$i clean; \
 	done
-	rm -f $(LIB) 
+	rm -f $(LIB)
 
 #$(EXEC): $(OBJECTS)
 #	$(CXX) -o $@ $^ $(LDFLAGS) $(ADDOBJS)
 
 $(LIB): $(filter-out main.o,$(OBJECTS))
-	-@rm $@    # linker
+	@rm -f $@    # linker
 	$(AR) rcu $@ $^ $(ADDOBJS)
 
 .PHONY: $(SUBDIRS)

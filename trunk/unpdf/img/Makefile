@@ -1,9 +1,10 @@
-SOURCES=main.cpp 
+SOURCES=main.cpp
 EXEC=imgtopng
 
 CPPFLAGS=-O3 -funroll-all-loops -finline-functions -Wall -g -I.. -I../../lsyscpp
 LDFLAGS=-L../libnpdf/ -lnpdf -lcrypto -lz -ljpeg
-LDFLAGS+=-llept -lpng -ltiff
+LDFLAGS+=-llept -lpng
+#TODO: pkg-config (deb > 1.70.1-1)
 
 OBJECTS=$(patsubst %.c,$(PREFIX)%$(SUFFIX).o,\
         $(patsubst %.cpp,$(PREFIX)%$(SUFFIX).o,\
