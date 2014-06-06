@@ -565,7 +565,7 @@ int main(int argc,char **argv)
 
     // assert(pdf->pages[*].getReadRef()!=NULL); // property of input-PDFs
     if (cmdl.mode==PG_Cmdline::MODE_PAGES) {
-      printf("%d pages\n",pdf->pages.size());
+      printf("%zu pages\n",pdf->pages.size());
       for (int iA=0;iA<(int)pdf->pages.size();iA++) {
         pdf->pages[iA].getReadRef()->print(stdfo);
 //        printf("%d ",pdf->pages[iA].getReadRef()->ref);
@@ -603,7 +603,7 @@ int main(int argc,char **argv)
     } else if (cmdl.mode==PG_Cmdline::MODE_PAGE) {
       // assert(cmdl.mode_page>0); // from Cmdline checking
       if (cmdl.mode_page>(int)pdf->pages.size()) {
-        printf("Page number %d does not exist (last is %d)\n",cmdl.mode_page,pdf->pages.size());
+        printf("Page number %d does not exist (last is %zu)\n",cmdl.mode_page,pdf->pages.size());
         return 2;
       }
       robj.reset(pdf->fetch(*pdf->pages[cmdl.mode_page-1].getReadRef()));

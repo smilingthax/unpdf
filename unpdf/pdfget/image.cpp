@@ -40,7 +40,7 @@ int DecodeFilter::FInput::read(char *buf,int len) // {{{
   int olen=0;
 
   if (o_pos<o_end) {
-    const int l2=std::min(o_end-o_pos,len);
+    const size_t l2=std::min(o_end-o_pos,(size_t)len);
     memcpy(buf,o_pos,l2*sizeof(char));
     o_pos+=l2;
     len-=l2;

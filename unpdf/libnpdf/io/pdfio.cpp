@@ -178,7 +178,7 @@ void PDFTools::ParsingInput::skip(bool required)
       skip_comment();
     } else if (!Parser::is_space(prebuf[prepos])) {
       if (required) {
-        fprintf(stderr,"Context: %.*s\n",prebuf.size()-prepos,&prebuf[prepos]);
+        fprintf(stderr,"Context: %.*s\n",(int)prebuf.size()-prepos,&prebuf[prepos]);
         throw UsrError("Delimiting whitespace expected");
       }
       return;
