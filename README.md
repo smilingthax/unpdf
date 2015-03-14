@@ -1,4 +1,6 @@
-A C++ library to access PDF-files at the object level.
+A C++ library to access PDF-files at the object level.  
+License: GNU Lesser GPL
+
 Functionality like "pdfselect" or even an "Acrobat Pro"-clone can then be implemented on top of it - the PDF-Reference will be your friend :-)
 
 Have a look at [CurrentStatus](https://github.com/smilingthax/unpdf/wiki/CurrentStatus). 
