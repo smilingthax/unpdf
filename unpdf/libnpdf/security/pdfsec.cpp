@@ -436,7 +436,7 @@ bool PDFTools::StandardSecurityHandler::check_ownerpw32a(const string &pw) // {{
   if (ownerpw_key.size()!=32) {
     throw UsrError("Encryption /OE entry not 32 bytes long");
   }
-  
+
   string owner_pw=saslprep(pw);
   const int plen=(owner_pw.size()>127)?127:owner_pw.size();
   char buf[32];
@@ -648,7 +648,7 @@ Dict *PDFTools::StandardSecurityHandler::set_pw389(const string &owner_pw,const 
 }
 // }}}
 
-string PDFTools::StandardSecurityHandler::get_objkey(const Ref &ref,bool aes) // {{{ 
+string PDFTools::StandardSecurityHandler::get_objkey(const Ref &ref,bool aes) // {{{
 {
   assert(algo<5);
   assert( (!aes)||(algo==4) );  // note that (algo==4)&&(!aes) is permissible
@@ -673,7 +673,7 @@ string PDFTools::StandardSecurityHandler::get_objkey(const Ref &ref,bool aes) //
     buf[4]=(ref.gen>>8)&0xff;
   }
   hash.update(buf,5);
-  if ( (algo==3)||(aes) ) { 
+  if ( (algo==3)||(aes) ) {
     hash.update("sAlT",4);
   }
 

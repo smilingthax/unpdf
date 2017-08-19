@@ -21,16 +21,17 @@ Page::Page(PagesTree &parent,PDF &pdf,const Ref &ref,Dict &dict,const Dict &reso
   pdict._move_from(&dict);
   resdict._copy_from(resources);
 
-  Object *obj=pdict.get("Contents");
-  if (Array *aval=dynamic_cast<Array *>(obj)) {
-    content._move_from(aval);
-  } else if (obj) {
-    // transfer ownership
-    pdict.set("Contents",obj,false);
-    content.add(obj,true);
-  } else {
-    assert(!pdict.find("Contents"));
-  }
+  const Object *cobj=pdict.find("Contents");
+  if (cobj) {
+    Object *obj=pdict.get("Contents");
+    if (Array *aval=dynamic_cast<Array *>(obj)) {
+      content._move_from(aval);
+    } else {
+      // transfer ownership
+      pdict.set("Contents",obj,false);
+      content.add(obj,true);
+    }
+  } // else: empty content
 
   // remove the things we directly handle
   pdict.erase("Resource");
