@@ -768,29 +768,29 @@ void PDFTools::PredInput::png_decode(int type)
 {
   if (type==0) { // none
   } else if (type==1) { // sub
-    for (int iA=color;iA<(int)line[0].size();iA++) {
-      thisline[iA]+=thisline[iA-color];
+    for (int iA=pbyte;iA<(int)line[0].size();iA++) {
+      thisline[iA]+=thisline[iA-pbyte];
     }
   } else if (type==2) { // up
-    for (int iA=color;iA<(int)line[0].size();iA++) {
+    for (int iA=pbyte;iA<(int)line[0].size();iA++) {
       thisline[iA]+=lastline[iA];
     }
   } else if (type==3) { // avg
-    for (int iA=color;iA<(int)line[0].size();iA++) {
-      thisline[iA]+=(thisline[iA-color]+lastline[iA])/2; // floor
+    for (int iA=pbyte;iA<(int)line[0].size();iA++) {
+      thisline[iA]+=(thisline[iA-pbyte]+lastline[iA])/2; // floor
     }
   } else if (type==4) { // paeth
-    for (int iA=color;iA<(int)line[0].size();iA++) {
-      const int p=thisline[iA-color]+lastline[iA]-lastline[iA-color];
-      const int pa=abs(p-thisline[iA-color]),
+    for (int iA=pbyte;iA<(int)line[0].size();iA++) {
+      const int p=thisline[iA-pbyte]+lastline[iA]-lastline[iA-pbyte];
+      const int pa=abs(p-thisline[iA-pbyte]),
                 pb=abs(p-lastline[iA]),
-                pc=abs(p-lastline[iA-color]);
+                pc=abs(p-lastline[iA-pbyte]);
       if ( (pa<=pb)&&(pa<=pc) ) {
-        thisline[iA]+=thisline[iA-color];
+        thisline[iA]+=thisline[iA-pbyte];
       } else if (pb<=pc) {
         thisline[iA]+=lastline[iA];
       } else {
-        thisline[iA]+=lastline[iA-color];
+        thisline[iA]+=lastline[iA-pbyte];
       }
     }
   } else {
@@ -807,11 +807,11 @@ int PDFTools::PredInput::read(char *buf,int len)
       memcpy(buf,thisline+cpos,clen*sizeof(char));
       cpos+=clen;
       olen+=clen;
+      buf+=clen;
+      len-=clen;
       if (len==0) {
         return olen;
       }
-      buf+=clen;
-      len-=clen;
     }
     if (ispng) {
       std::swap(thisline,lastline);
@@ -956,29 +956,29 @@ void PDFTools::PredOutput::png_encode(unsigned char *dest,int type)
     assert(0);
     memcpy(dest-line[0].size()+pbyte,thisline,(line[0].size()-pbyte)*sizeof(char));
   } else if (type==1) { // sub
-    for (int iA=line[0].size()-1;iA>=color;iA--) {
-      *--dest=thisline[iA]-thisline[iA-color];
+    for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
+      *--dest=thisline[iA]-thisline[iA-pbyte];
     }
   } else if (type==2) { // up
-    for (int iA=line[0].size()-1;iA>=color;iA--) {
+    for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
       *--dest=thisline[iA]-lastline[iA];
     }
   } else if (type==3) { // avg
-    for (int iA=line[0].size()-1;iA>=color;iA--) {
-      *--dest=thisline[iA]-(thisline[iA-color]+lastline[iA])/2; // floor
+    for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
+      *--dest=thisline[iA]-(thisline[iA-pbyte]+lastline[iA])/2; // floor
     }
   } else if (type==4) { // paeth
-    for (int iA=line[0].size()-1;iA>=color;iA--) {
-      const int p=thisline[iA-color]+lastline[iA]-lastline[iA-color];
-      const int pa=abs(p-thisline[iA-color]),
+    for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
+      const int p=thisline[iA-pbyte]+lastline[iA]-lastline[iA-pbyte];
+      const int pa=abs(p-thisline[iA-pbyte]),
                 pb=abs(p-lastline[iA]),
-                pc=abs(p-lastline[iA-color]);
+                pc=abs(p-lastline[iA-pbyte]);
       if ( (pa<=pb)&&(pa<=pc) ) {
-        *--dest=thisline[iA]-thisline[iA-color];
+        *--dest=thisline[iA]-thisline[iA-pbyte];
       } else if (pb<=pc) {
         *--dest=thisline[iA]-lastline[iA];
       } else {
-        *--dest=thisline[iA]-lastline[iA-color];
+        *--dest=thisline[iA]-lastline[iA-pbyte];
       }
     }
   }
@@ -998,20 +998,20 @@ int PDFTools::PredOutput::png_encode()
                 *d3=&encd[2][1]+line[0].size()-pbyte,
                 *d4=&encd[3][1]+line[0].size()-pbyte;
   int a[5]={0,0,0,0,0};
-  for (int iA=line[0].size()-1;iA>=color;iA--) {
-    *--d1=thisline[iA]-thisline[iA-color];
+  for (int iA=line[0].size()-1;iA>=pbyte;iA--) {
+    *--d1=thisline[iA]-thisline[iA-pbyte];
     *--d2=thisline[iA]-lastline[iA];
-    *--d3=thisline[iA]-(thisline[iA-color]+lastline[iA])/2; // floor
-    const int p=thisline[iA-color]+lastline[iA]-lastline[iA-color];
-    const int pa=abs(p-thisline[iA-color]),
+    *--d3=thisline[iA]-(thisline[iA-pbyte]+lastline[iA])/2; // floor
+    const int p=thisline[iA-pbyte]+lastline[iA]-lastline[iA-pbyte];
+    const int pa=abs(p-thisline[iA-pbyte]),
               pb=abs(p-lastline[iA]),
-              pc=abs(p-lastline[iA-color]);
+              pc=abs(p-lastline[iA-pbyte]);
     if ( (pa<=pb)&&(pa<=pc) ) {
-      *--d4=thisline[iA]-thisline[iA-color];
+      *--d4=thisline[iA]-thisline[iA-pbyte];
     } else if (pb<=pc) {
       *--d4=thisline[iA]-lastline[iA];
     } else {
-      *--d4=thisline[iA]-lastline[iA-color];
+      *--d4=thisline[iA]-lastline[iA-pbyte];
     }
     a[0]+=(char)thisline[iA];
     a[1]+=*(char *)d1;
