@@ -25,6 +25,6 @@ namespace PDFTools {
     virtual Output *getOutput(Output &write_to) const=0;
   };
 
-};
+} // namespace PDFTools
 
 #endif

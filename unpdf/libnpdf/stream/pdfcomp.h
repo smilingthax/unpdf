@@ -74,6 +74,6 @@ namespace PDFTools {
     Encrypt *encrypt;
     OFilter *filter;
   };
-};
+} // namespace PDFTools
 
 #endif

@@ -61,7 +61,7 @@ namespace PDFTools {
         return (c|0x20)-'a'+10;
       }
     }
-  };
-};
+  } // namespace Parser
+} // namespace PDFTools
 
 #endif

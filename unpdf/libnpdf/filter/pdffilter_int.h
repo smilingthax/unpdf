@@ -45,7 +45,8 @@ namespace PDFTools {
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter);
-  };
+  } // namespace AHexFilter
+
   namespace A85Filter {
     extern const char *name;
 
@@ -80,7 +81,8 @@ namespace PDFTools {
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter);
-  };
+  } // namespace A85Filter
+
   class PredInput : public Input {
   public:
     PredInput(Input *read_from,int width,int color,int bpc,int predictor); // takes; >predictor!=1
@@ -105,6 +107,7 @@ namespace PDFTools {
     int pbyte,pshift;
     bool ispng;
   };
+
   class PredOutput : public Output {
   public:
     PredOutput(Output *write_to,int width,int color,int bpc,int predictor); // takes, >predictor!=1
@@ -129,6 +132,7 @@ namespace PDFTools {
     int pbyte,pshift;
     bool ispng;
   };
+
   namespace LZWFilter {
     extern const char *name;
 
@@ -168,7 +172,8 @@ namespace PDFTools {
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter,const Params &prm=Params());
-  };
+  } // namespace LZWFilter
+
   namespace FlateFilter {
     extern const char *name;
 
@@ -202,7 +207,8 @@ namespace PDFTools {
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter,const Params &prm=Params());
-  };
+  } // namespace FlateFilter
+
   namespace RLEFilter {
     extern const char *name;
 
@@ -235,7 +241,8 @@ namespace PDFTools {
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter);
-  };
+  } // namespace RLEFilter
+
   namespace FaxFilter {
     extern const char *name;
 
@@ -284,14 +291,16 @@ namespace PDFTools {
 
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter,const Params &prm=Params());
-  };
+  } // namespace FaxFilter
+
   namespace JBIG2Filter {
     extern const char *name;
 
     struct Params {};
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter,const Params &prm=Params());
-  };
+  } // namespace JBIG2Filter
+
   namespace JpegFilter {
     extern const char *name;
 
@@ -340,13 +349,15 @@ namespace PDFTools {
     };
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter,const Params &prm=Params());
-  };
+  } // namespace JpegFilter
+
   // PDF-1.5
   namespace JPXFilter {
     extern const char *name;
     Input *makeInput(const char *fname,Input &read_from,const Dict *params);
     void makeOutput(OFilter &filter);
-  };
-};
+  } // namespace JPXFilter
+
+} // namespace PDFTools
 
 #endif

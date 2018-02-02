@@ -175,6 +175,6 @@ namespace PDFTools {
     static const char *names[];
   };
 */
-};
+} // namespace PDFTools
 
 #endif

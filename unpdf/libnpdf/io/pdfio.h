@@ -38,6 +38,6 @@ namespace PDFTools {
     int prepos;
   };
 
-};
+} // namespace PDFTools
 
 #endif

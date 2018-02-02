@@ -66,6 +66,6 @@ std::vector<Input *> &chain() { return filter_chain; }
     Array filter;
     Array params;
   };
-};
+} // namespace PDFTools
 
 #endif
