@@ -29,14 +29,10 @@ clean:
 	rm -f $(EXEC1) $(TESTOBJECTS) $(TESTSRC1:.c=.d) $(TESTSRC2:.cpp=.d)
 
 %.d: %.c
-	@$(SHELL) -ec '$(CC) -MM $(CPPFLAGS) $< \
-                      | sed '\''s§\($*\)\.o[ :]*§\1.o $@ : §g'\'' > $@;\
-                      [ -s $@ ] || rm -f $@'
+	@$(CC) $(CPPFLAGS) -MM -MT"$@" -MT"$*.o" -o $@ $<  2> /dev/null
 
 %.d: %.cpp
-	@$(SHELL) -ec '$(CXX) -MM $(CPPFLAGS) $< \
-                      | sed '\''s§\($*\)\.o[ :]*§\1.o $@ : §g'\'' > $@;\
-                      [ -s $@ ] || rm -f $@'
+	@$(CXX) $(CPPFLAGS) $(CXXFLAGS) -MM -MT"$@" -MT"$*.o" -o $@ $<  2> /dev/null
 
 $(LIB1): $(OBJECTS1)
 	$(AR) rcu $@ $^
