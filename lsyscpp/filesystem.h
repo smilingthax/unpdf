@@ -7,7 +7,7 @@
 
 class FS_except : public std::exception {
 public:
-  FS_except(int errnum) throw();
+  explicit FS_except(int errnum,const char *cmd=NULL,const char *extra=NULL) throw();
   ~FS_except() throw() {}
   const char *what() const throw() { return errtext.c_str(); }
   int err_no() const throw() { return errnum; }

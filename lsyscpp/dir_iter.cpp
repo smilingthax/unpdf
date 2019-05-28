@@ -19,7 +19,7 @@ dir_iterator::dir_iterator(const std::string &path)
   impl->path=path;
   impl->d=opendir(path.c_str());
   if (!impl->d) {
-    throw FS_except(errno);
+    throw FS_except(errno,"opendir",path.c_str());
   }
   ++(*this);
 }

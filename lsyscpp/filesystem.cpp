@@ -13,9 +13,15 @@
 
 using namespace std;
 
-FS_except::FS_except(int errnum) throw() : errnum(errnum)
+FS_except::FS_except(int errnum,const char *cmd,const char *extra) throw() : errnum(errnum)
 {
-  errtext=string(strerror(errnum));
+  if (extra) {
+    errtext=string(cmd ? cmd : "") + "(" + extra + "): " + strerror(errnum);
+  } else if (cmd) {
+    errtext=string(cmd) + ": " + strerror(errnum);
+  } else {
+    errtext=string(strerror(errnum));
+  }
 }
 
 // TODO: ? only win32, linux, os x
@@ -24,7 +30,7 @@ string FS::cwd() // {{{
 {
   char *tmp=getcwd(NULL,0);  // win32: _getcwd
   if (!tmp) {
-    throw FS_except(errno);
+    throw FS_except(errno,"getcwd()");
   }
   string ret(tmp);
   free(tmp);
@@ -99,7 +105,7 @@ void FS::create_dir(const string &dirname) // {{{
   int res=mkdir(dirname.c_str(),0777);
 #endif
   if (res==-1) {
-    throw FS_except(errno);
+    throw FS_except(errno,"mkdir",dirname.c_str());
   }
 }
 // }}}
@@ -160,7 +166,7 @@ FS::dstat_t FS::get_diskstat(const std::string &path,bool rootspace) // {{{
   struct statvfs svs;
   int res=statvfs(path.c_str(),&svs);
   if (res!=0) {
-    throw FS_except(errno);
+    throw FS_except(errno,"statvfs",path.c_str());
   }
   dstat_t ret;
   ret.sum_space=(long long)svs.f_frsize*svs.f_blocks;
