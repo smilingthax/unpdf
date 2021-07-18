@@ -39,7 +39,8 @@ namespace FS {
     return (!name.empty())&&(name[0]=='/');
   }
 
-#if defined(_LARGEFILE64_SOURCE) && !defined(__APPLE__)
+#if defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__)
+// #if defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS == 64  // TODO?!
   std::string humanreadable_size(off64_t size);
 #endif
   std::string humanreadable_size(off_t size);
