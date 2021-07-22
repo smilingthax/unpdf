@@ -97,14 +97,47 @@ bool FS::is_dir(const std::string &path) // {{{
 }
 // }}}
 
-void FS::create_dir(const string &dirname) // {{{
+void FS::create_dir(const string &dirname,unsigned int mode) // {{{
 {
 #ifdef _WIN32
   int res=mkdir(dirname.c_str());
 #else
-  int res=mkdir(dirname.c_str(),0777);
+  int res=mkdir(dirname.c_str(),mode);
 #endif
   if (res==-1) {
+    throw FS_except(errno,"mkdir",dirname.c_str());
+  }
+}
+// }}}
+
+void FS::create_dirs(const string &dirname,unsigned int mode) // {{{
+{
+  if (dirname.empty()) {
+    throw FS_except(ENOENT,"mkdir",dirname.c_str());
+  }
+
+  size_t start=dirname.find_first_not_of('/'),pos;
+  int ret=0;
+
+  while ((pos=dirname.find_first_of('/',start))!=std::string::npos) {
+    // TODO? windows: drive letter (C:\...) / UNC path (\\server\...)
+    if (!is_special_dot(dirname.substr(start,pos-start))) {
+#ifdef _WIN32
+      ret=mkdir(dirname.substr(0,pos).c_str());
+#else
+      ret=mkdir(dirname.substr(0,pos).c_str(),mode);
+#endif
+    }
+    start=dirname.find_first_not_of('/',pos+1);
+  }
+  if ( (start<dirname.size())&&(!is_special_dot(dirname.substr(start))) ) {
+#ifdef _WIN32
+    ret=mkdir(dirname.c_str());
+#else
+    ret=mkdir(dirname.c_str(),mode);
+#endif
+  }
+  if (ret==-1) {
     throw FS_except(errno,"mkdir",dirname.c_str());
   }
 }
@@ -218,3 +251,114 @@ pair<string,string> FS::extension(const string &filename) // {{{
   return make_pair(filename.substr(0,pos),filename.substr(pos+1));
 }
 // }}}
+
+
+#include <dirent.h>
+#include <vector>
+#include <memory>
+
+//#define NOOP_REMOVE
+
+struct dir_stack_t {
+  dir_stack_t(DIR *d, size_t pathpos) : d(d), pathpos(pathpos) {}
+  struct closedir_deleter {
+    void operator()(DIR *d) {
+      closedir(d);
+    }
+  };
+  std::unique_ptr<DIR, closedir_deleter> d;
+  size_t pathpos;
+};
+
+int FS::remove_all(const std::string &path)
+{
+  int ret = 0;
+  struct stat st;
+
+  if (path.empty()) {
+    return ret;
+  } else if (lstat(path.c_str(), &st) == -1) {  // TODO/FIXME: not on _WIN32 -> just stat ...?
+    return ret;
+  }
+
+  if (!S_ISDIR(st.st_mode)) {
+#ifdef NOOP_REMOVE
+    printf("noop unlink(%s)\n", path.c_str());
+    ret++;
+#else
+    if (unlink(path.c_str()) != -1) {
+      ret++;
+    }
+#endif
+    return ret;
+  }
+
+  std::string fullpath = path;
+  if (fullpath.back() != '/') {
+    fullpath.push_back('/');
+  }
+
+  std::vector<dir_stack_t> stack;
+
+  DIR *d = opendir(fullpath.c_str());
+  if (!d) {
+    return ret;
+  }
+  stack.emplace_back(d, fullpath.size());
+
+  do {
+    DIR *d = stack.back().d.get();
+    size_t pathpos = stack.back().pathpos;
+    struct dirent *de;
+
+    while ((de = readdir(d)) != NULL) {
+      if (is_special_dot(de->d_name)) {
+        continue;
+      }
+
+      fullpath.resize(pathpos);
+      fullpath.append(de->d_name);
+
+      if (lstat(fullpath.c_str(), &st) == -1) {  // not on _WIN32 -> just stat ...?
+        continue;
+      }
+      if (S_ISDIR(st.st_mode)) {
+        fullpath.push_back('/');
+
+        d = opendir(fullpath.c_str());
+        if (!d) {
+          d = stack.back().d.get();
+          continue;
+        }
+        stack.emplace_back(d, fullpath.size());
+
+        // descend [d already updated]  (alt: continue/goto outer loop)
+        pathpos = stack.back().pathpos;
+
+      } else {
+#ifdef NOOP_REMOVE
+        printf("noop unlink(%s)\n", fullpath.c_str());
+        ret++;
+#else
+        if (unlink(fullpath.c_str()) != -1) {
+          ret++;
+        }
+#endif
+      }
+    }
+    stack.pop_back();
+    fullpath.resize(pathpos);
+
+#ifdef NOOP_REMOVE
+    printf("noop rmdir(%s)\n", fullpath.c_str());
+    ret++;
+#else
+    if (rmdir(fullpath.c_str()) != -1) {
+      ret++;
+    }
+#endif
+  } while (!stack.empty());
+
+  return ret;
+}
+
