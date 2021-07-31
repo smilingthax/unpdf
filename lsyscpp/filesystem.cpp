@@ -117,15 +117,20 @@ bool FS::is_dir(const std::string &path) // {{{
 }
 // }}}
 
-void FS::create_dir(const string &dirname,unsigned int mode) // {{{
+void FS::create_dir(const string &dirname,bool skip_existing,unsigned int mode) // {{{
 {
 #ifdef _WIN32
-  int res=mkdir(dirname.c_str());
+  const int res=mkdir(dirname.c_str());
 #else
-  int res=mkdir(dirname.c_str(),mode);
+  const int res=mkdir(dirname.c_str(),mode);
 #endif
   if (res==-1) {
-    throw FS_except(errno,"mkdir",dirname.c_str());
+    if ( (!skip_existing)||(errno!=EEXIST) ) {
+      throw FS_except(errno,"mkdir",dirname.c_str());
+    }
+    if (!is_dir(dirname)) {
+      throw FS_except(ENOTDIR,"mkdir",dirname.c_str());
+    }
   }
 }
 // }}}
@@ -136,8 +141,25 @@ void FS::create_dirs(const string &dirname,unsigned int mode) // {{{
     throw FS_except(ENOENT,"mkdir",dirname.c_str());
   }
 
-  size_t start=dirname.find_first_not_of('/'),pos;
   int ret=0;
+
+  // optimization: try full path (create only last component) first
+  // - this also prevents throwing, when if target dir exists
+#ifdef _WIN32
+  ret=mkdir(dirname.c_str());
+#else
+  ret=mkdir(dirname.c_str(),mode);
+#endif
+  if (ret==0) {
+    return;
+  } else if (errno==EEXIST) {
+    if (!is_dir(dirname)) {
+      throw FS_except(ENOTDIR,"mkdir",dirname.c_str());
+    }
+    return;
+  }
+
+  size_t start=dirname.find_first_not_of('/'),pos;
 
   while ((pos=dirname.find_first_of('/',start))!=std::string::npos) {
     // TODO? windows: drive letter (C:\...) / UNC path (\\server\...)
