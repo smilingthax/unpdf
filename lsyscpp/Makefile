@@ -25,8 +25,8 @@ ifneq "$(MAKECMDGOALS)" "clean"
 endif
 
 clean:
-	rm -f $(LIB1) $(OBJECTS1) $(SOURCES1:.c=.d) $(SOURCES2:.cpp=.d)
-	rm -f $(EXEC1) $(TESTOBJECTS) $(TESTSRC1:.c=.d) $(TESTSRC2:.cpp=.d)
+	$(RM) $(LIB1) $(OBJECTS1) $(SOURCES1:.c=.d) $(SOURCES2:.cpp=.d)
+	$(RM) $(EXEC1) $(TESTOBJECTS) $(TESTSRC1:.c=.d) $(TESTSRC2:.cpp=.d)
 
 %.d: %.c
 	@$(CC) $(CPPFLAGS) -MM -MT"$@" -MT"$*.o" -o $@ $<  2> /dev/null

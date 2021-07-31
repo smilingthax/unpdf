@@ -24,6 +24,26 @@ FS_except::FS_except(int errnum,const char *cmd,const char *extra) throw() : err
   }
 }
 
+#ifdef _WIN32
+#include <windef.h>   // HWND
+#include <winbase.h>  // FormatMessage
+
+std::string Win32_except::_formatMsg(DWORD code, const char *cmd, const char *extra) // {{{
+{
+  // assert(cmd);
+  char str[256];
+  FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM, NULL, code, 0, str, sizeof(str), NULL);
+  if (extra) {
+    return std::string(cmd ? cmd : "") + "(" + extra + "): " + str;
+  } else if (cmd) {
+    return std::string(cmd) + ": " + str;
+  } else {
+    return str;
+  }
+}
+// }}}
+#endif
+
 // TODO: ? only win32, linux, os x
 // win32: #include <direct.h>
 string FS::cwd() // {{{
@@ -169,7 +189,7 @@ string FS::joinPathRel(const string &a1,const string &a2) // {{{
 }
 // }}}
 
-#if defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__)
+#if (defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__)) || defined(_WIN32)
 string FS::humanreadable_size(off64_t size) // {{{
 {
   char tmp[40];
@@ -193,7 +213,32 @@ string FS::humanreadable_size(off64_t size) // {{{
 // }}}
 #endif
 
-#ifndef _WIN32  // for now
+#ifdef _WIN32
+#include <fileapi.h>
+#include <errhandlingapi.h>
+
+FS::dstat_t FS::get_diskstat(const std::string &path,bool rootspace) // {{{
+{
+  ULARGE_INTEGER free_bytes,total_bytes,rootfree_bytes;
+  if (!GetDiskFreeSpaceExA(path.c_str(),&free_bytes,&total_bytes,&rootfree_bytes)) {
+    throw Win32_except(GetLastError(),"GetDiskFreeSpaceEx()");
+  }
+  DWORD flags;
+  if (!GetVolumeInformationA(path.c_str(),NULL,0,NULL,NULL,&flags,NULL,0)) {
+    throw Win32_except(GetLastError(),"GetVolumeInformation()");
+  }
+  dstat_t ret;
+  ret.sum_space=total_bytes.QuadPart;
+  if (rootspace) {
+    ret.free_space=rootfree_bytes.QuadPart;
+  } else {
+    ret.free_space=free_bytes.QuadPart;
+  }
+  ret.readonly=(flags & FILE_READ_ONLY_VOLUME);
+  return ret;
+}
+// }}}
+#else
 FS::dstat_t FS::get_diskstat(const std::string &path,bool rootspace) // {{{
 {
   struct statvfs svs;
@@ -270,6 +315,13 @@ struct dir_stack_t {
   size_t pathpos;
 };
 
+#ifdef _WIN32
+static inline int lstat(const char *pathname, struct stat *statbuf)
+{
+  return stat(pathname, statbuf);
+}
+#endif
+
 int FS::remove_all(const std::string &path)
 {
   int ret = 0;
@@ -277,7 +329,7 @@ int FS::remove_all(const std::string &path)
 
   if (path.empty()) {
     return ret;
-  } else if (lstat(path.c_str(), &st) == -1) {  // TODO/FIXME: not on _WIN32 -> just stat ...?
+  } else if (lstat(path.c_str(), &st) == -1) {
     return ret;
   }
 
@@ -319,7 +371,7 @@ int FS::remove_all(const std::string &path)
       fullpath.resize(pathpos);
       fullpath.append(de->d_name);
 
-      if (lstat(fullpath.c_str(), &st) == -1) {  // not on _WIN32 -> just stat ...?
+      if (lstat(fullpath.c_str(), &st) == -1) {
         continue;
       }
       if (S_ISDIR(st.st_mode)) {

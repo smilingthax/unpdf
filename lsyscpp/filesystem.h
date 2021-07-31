@@ -16,6 +16,16 @@ private:
   int errnum;
 };
 
+#ifdef _WIN32
+#include <minwindef.h>
+
+struct Win32_except : public std::runtime_error {
+  Win32_except(DWORD code, const char *cmd=NULL,const char *extra=NULL)
+    : std::runtime_error(_formatMsg(code, cmd, extra))
+  { }
+  static std::string _formatMsg(DWORD code, const char *cmd=NULL, const char *extra=NULL);
+};
+#endif
 
 namespace FS {
   std::string cwd();
@@ -42,8 +52,8 @@ namespace FS {
     return (!name.empty())&&(name[0]=='/');
   }
 
-#if defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__)
-// #if defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS == 64  // TODO?!
+#if (defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__)) || defined(_WIN32)
+// #if (defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS == 64) || defined _WIN32  // TODO?!
   std::string humanreadable_size(off64_t size);
 #endif
   std::string humanreadable_size(off_t size);

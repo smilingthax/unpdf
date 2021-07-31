@@ -1,7 +1,9 @@
 #include "exec.h"
 #include <stdarg.h>
 #include <assert.h>
+#ifndef _WIN32
 #include <sys/wait.h>
+#endif
 #include <errno.h>
 #include "filesystem.h"
 
@@ -44,13 +46,16 @@ if (...child) {
 */
 
 
-using namespace std;
-
 #include <stdio.h>
 #include <unistd.h>
 
+  // TODO?! spawnvp / execvp ??
 int Sys::do_exec(const char *execpath,const char **args)
 {
+#ifdef _WIN32
+  return spawnv(P_WAIT, execpath, (char *const *)args);
+  // if (ret == -1) throw FS_except(errno, "spawnv()");
+#else
   int pid=fork();
   if (pid<0) {
 //    throw FS_except(errno);
@@ -76,14 +81,15 @@ printf("%s\n",execpath);
       return -1;
     }
   }
+#endif
 }
 
 int Sys::execute(const char *execpath,...)
 {
   va_list ap;
-  vector<const char *> args;
+  std::vector<const char *> args;
 
-  string arg0=FS::basename(string(execpath));
+  std::string arg0=FS::basename(execpath);
   args.push_back(arg0.c_str());
 
   va_start(ap,execpath);
@@ -97,11 +103,11 @@ int Sys::execute(const char *execpath,...)
   return do_exec(execpath,&args[0]);
 }
 
-int Sys::execute(const string &execpath,const vector<string> &args)
+int Sys::execute(const std::string &execpath,const std::vector<std::string> &args)
 {
-  vector<const char *> cargs;
+  std::vector<const char *> cargs;
 
-  string arg0=FS::basename(execpath);
+  std::string arg0=FS::basename(execpath);
   cargs.push_back(arg0.c_str());
 
   for (int iA=0;iA<(int)args.size();iA++) {
