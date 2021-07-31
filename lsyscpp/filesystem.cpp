@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #ifndef _WIN32
-#include <sys/statvfs.h>
+#  include <sys/statvfs.h>
 #endif
 #include <string.h>
 #include <stdlib.h>
@@ -344,7 +344,7 @@ static inline int lstat(const char *pathname, struct stat *statbuf)
 }
 #endif
 
-int FS::remove_all(const std::string &path)
+int FS::remove_all(const std::string &path) // {{{
 {
   int ret = 0;
   struct stat st;
@@ -435,4 +435,230 @@ int FS::remove_all(const std::string &path)
 
   return ret;
 }
+// }}}
+
+
+#include <fcntl.h>
+#include <unistd.h>
+#if _POSIX_MAPPED_FILES  // in unistd.h for POSIX systems that have mmap
+#  include <sys/mman.h>
+#else
+#  include <stdlib.h>
+#endif
+
+struct unique_fd { // {{{
+  unique_fd(int fd) : fd(fd) {}
+  ~unique_fd() {
+    close();
+  }
+  unique_fd(const unique_fd &) = delete;
+  unique_fd &operator=(const unique_fd &) = delete;
+  void close() {
+    if (fd >= 0) {
+      ::close(fd);
+      fd = -1;
+    }
+  }
+  operator int() {
+    return fd;
+  }
+private:
+  int fd;
+};
+// }}}
+
+struct unique_unlink { // {{{
+  unique_unlink(const std::string &name) : name(name) {}
+  ~unique_unlink() {
+    if (!name.empty()) {
+      unlink(name.c_str());  // NOTE: do not throw in ctor...
+    }
+  }
+  unique_unlink(const unique_fd &) = delete;
+  unique_unlink &operator=(const unique_unlink &) = delete;
+  void release() {
+    name.clear();
+  }
+private:
+  std::string name;
+};
+// }}}
+
+struct unique_fd_unlink final { // {{{
+  unique_fd_unlink(int fd, const std::string &name)
+    : unlinker(fd >= 0 ? name : std::string{}), fd(fd)
+  { }
+  unique_fd_unlink(const unique_unlink &) = delete;
+  unique_fd_unlink &operator=(const unique_fd_unlink &) = delete;
+  void finish() {
+    fd.close();
+    unlinker.release();
+  }
+  operator int() {
+    return fd;
+  }
+private:
+  unique_unlink unlinker; // dtor must run *after* unique_fd!
+  unique_fd fd;
+};
+// }}}
+
+#if _POSIX_MAPPED_FILES
+struct unique_mmap { // {{{
+  unique_mmap(void *ptr, size_t len)
+    : ptr(ptr), len(len)
+  { }
+  ~unique_mmap() {
+    munmap(ptr, len);  // retval: dtor shall not throw ...
+  }
+  unique_mmap(const unique_mmap &) = delete;
+  unique_mmap &operator=(const unique_mmap &) = delete;
+  operator void *() {
+    return ptr;
+  }
+private:
+  void *ptr;
+  size_t len;
+};
+// }}}
+#endif
+
+static void do_write(int fd, const char *buf, size_t len) // {{{
+{
+  size_t offset = 0;
+  do {
+    const ssize_t res = write(fd, buf + offset, len - offset);
+    if (res < 0) {
+      throw FS_except(errno, "write()");
+    }
+    offset += res;
+  } while (offset < len);
+}
+// }}}
+
+static int do_open_new(const std::string &name, int flags, mode_t mode, bool overwrite) // {{{
+{
+  flags |= O_CREAT | O_EXCL;
+  const int fd = open(name.c_str(), flags, mode);
+  if (fd == -1 && overwrite && errno == EEXIST) {
+    // TODO(optim)? if "same file", return immediate success of copy_file ?
+    if (unlink(name.c_str()) == -1) {
+      throw FS_except(errno, "unlink", name.c_str());
+    }
+    return open(name.c_str(), flags, mode);
+  }
+  return fd;
+}
+// }}}
+
+void FS::copy_file(const std::string &from, const std::string &to, bool overwrite) // {{{
+{
+  struct stat st;
+#ifndef _WIN32
+#  define _O_BINARY  0
+#endif
+
+  unique_fd ifd{open(from.c_str(), O_RDONLY | _O_BINARY)};
+  if (ifd == -1) {
+    throw FS_except(errno, "open", from.c_str());
+  }
+
+  if (fstat(ifd, &st) == -1) {
+    throw FS_except(errno, "fstat", from.c_str());
+  } else if (!S_ISREG(st.st_mode)) {
+    throw FS_except(ENOTSUP, "FS::copy_file", from.c_str());
+  }
+
+  // TRICK: unlink + reopen the destination only after we have an open handle to the source,
+  //        so we can still access the old contents, even when it was (e.g.) a symlink to the destination
+  unique_fd_unlink ofd{do_open_new(to.c_str(), O_WRONLY | _O_BINARY, S_IWUSR, overwrite), to.c_str()}; // start with (0200 & ~umask), chmod later to real mode
+  if (ofd == -1) {
+    throw FS_except(errno, "open", to.c_str());
+  }
+#undef _O_BINARY
+
+#ifdef _WIN32
+  if (chmod(to.c_str(), st.st_mode) == -1) {
+    throw FS_except(errno, "chmod", to.c_str());
+  }
+#else
+  if (fchmod(ofd, st.st_mode) == -1) {
+    throw FS_except(errno, "fchmod", to.c_str());
+  }
+#endif
+
+#if _POSIX_MAPPED_FILES
+  const off_t len = st.st_size;
+  if (len > 0) {
+    // TODO/FIXME: loop ("re-mmap" w/ incrementing offset [cave: offsets must be page aligned!!!])
+    unique_mmap ptr{mmap(NULL, len, PROT_READ, MAP_SHARED, ifd, 0), (size_t)len};
+    if (ptr == MAP_FAILED) {
+      throw FS_except(errno, "mmap", from.c_str());
+    }
+
+    do_write(ofd, (const char *)(void *)ptr, len);
+  }
+
+#else
+  std::vector<char> buf;
+  buf.resize(16 * 1024); // 16k
+
+  while (1) {
+    const ssize_t len = read(ifd, buf.data(), buf.size());
+    if (len == 0) {
+      break;
+    } else if (len < 0) {
+      throw FS_except(errno, "read", from.c_str());
+    }
+
+    do_write(ofd, buf.data(), len);
+  }
+#endif
+
+  ofd.finish();
+}
+// }}}
+
+void FS::move_file(const std::string &from, const std::string &to, bool overwrite) // {{{
+{
+  struct stat st;
+
+  // NOTE: we dereference (symbolic link) from
+  if (stat(from.c_str(), &st) != 0) {
+    throw FS_except(errno, "stat", from.c_str());
+  } else if (S_ISDIR(st.st_mode)) {
+    throw FS_except(EACCES, "FS::move_file", from.c_str());
+  } else if (!S_ISREG(st.st_mode)) {
+    throw FS_except(ENOTSUP, "FS::move_file", from.c_str());
+  }
+
+#ifdef _WIN32
+  if (!MoveFileExA(from.c_str(), to.c_str(), (overwrite ? MOVEFILE_REPLACE_EXISTING : 0) | MOVEFILE_COPY_ALLOWED)) {
+    throw Win32_except(GetLastError(), "MoveFileEx", (from + ", " + to).c_str());
+  }
+#else
+
+  if (!overwrite && lstat(to.c_str(), &st) == 0) {
+    throw FS_except(EEXIST, "FS::move_file", (from + ", " + to).c_str());
+  }
+  // NOTE: no need to check (overwrite && stat(to.c_str(), &st)) == 0 && S_ISDIR(st.st_mode)): rename *will* fail
+
+  if (rename(from.c_str(), to.c_str()) == 0) {
+    return;
+  }
+
+  if (errno != EXDEV) {
+    throw FS_except(errno, "rename", (from + ", " + to).c_str());
+  }
+
+  // fallback to copy + unlink
+  FS::copy_file(from, to, overwrite);  // CAVE: must work correctly even when from and to somehow point to the same file!
+
+  // NOTE: this can never remove/invalidate the destination file, when from/to "point to the same file"
+  if (unlink(from.c_str()) == -1) {
+    fprintf(stderr, "FS::move_file failed to remove original file (%s): %s\n", from.c_str(), strerror(errno));  // TODO?
+  }
+#endif
+}
+// }}}
 

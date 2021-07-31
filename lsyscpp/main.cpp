@@ -61,6 +61,30 @@ int main(int argc,char **argv)
 //    Sys::execute("ls",NULL);
     Sys::execute("/bin/ls",NULL);
 #endif
+#if 0
+    FS::create_dirs("./asdf/bgla/../d");
+    printf("remove_all: %d\n", FS::remove_all("./asdf"));
+#endif
+#if 0
+    const char *srcfile = "fstest"
+#ifdef _WIN32
+      ".exe"
+#endif
+    ;
+    // NOTE: as we throw on every occasion, no cleanup, no "create directory if exists"  [-> remove_all shall be in a RAII dtor...]
+    FS::create_dir("./asdf", true);
+    FS::copy_file(srcfile, "./asdf/blub", true);
+try {
+  FS::copy_file(srcfile, "./asdf/blub1", !true);
+} catch (std::exception &e) { printf("Warning: %s\n",e.what()); }
+    FS::move_file("./asdf/blub", "./asdf/blub1", true);
+#ifdef _WIN32
+Sys::execute(getenv("COMSPEC"),"/c","dir asdf",NULL);
+#else
+Sys::execute("/bin/ls","-al","asdf",NULL);
+#endif
+    FS::remove_all("./asdf");
+#endif
   } catch (exception &ex) {
     printf("Ex: %s\n",ex.what());
   }

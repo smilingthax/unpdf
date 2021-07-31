@@ -69,6 +69,9 @@ namespace FS {
   };
   dstat_t get_diskstat(const std::string &path,bool rootspace=false);
 
-};
+  void copy_file(const std::string &from,const std::string &to,bool overwrite=false);
+  void move_file(const std::string &from,const std::string &to,bool overwrite=false);
+
+} // namespace FS
 
 #endif
