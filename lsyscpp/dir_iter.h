@@ -14,7 +14,7 @@ public:
   bool end() const;
   std::string fullpath() const;
 private:
-  class dir_iterator_impl;
+  struct dir_iterator_impl;
   dir_iterator_impl *impl;
 
   dir_iterator(const dir_iterator &);
