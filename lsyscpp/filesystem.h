@@ -55,7 +55,7 @@ namespace FS {
     return (!name.empty())&&(name[0]=='/');
   }
 
-#if (defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__)) || defined(_WIN32)
+#if (defined(_LARGEFILE64_SOURCE) && !defined(__x86_64__) && !defined(__ppc64__) && !defined(__aarch64__)) || defined(_WIN32)
 // #if (defined _FILE_OFFSET_BITS && _FILE_OFFSET_BITS == 64) || defined _WIN32  // TODO?!
   std::string humanreadable_size(off64_t size);
 #endif
