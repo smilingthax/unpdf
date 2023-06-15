@@ -1,12 +1,11 @@
 #include <assert.h>
 #include "cmdline.h"
-//#include "exception.h"
 #include <errno.h>
-#include "filesystem.h"
 #include <string.h>
 #include <limits.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <system_error>
 
 using namespace std;
 
@@ -140,14 +139,14 @@ void Cmdline::check_param(const char *shortopt,const char *longopt) const
 {
   if ( (!shortopt)&&(!longopt) ) {
     assert(false);
-    throw FS_except(EINVAL);
+    throw std::system_error(EINVAL, std::generic_category(), "unexpected");
   }
   // check for collisions
   for (int iA=0;iA<(int)cmds.size();iA++) {
     if ( (shortopt)&&(strcmp(cmds[iA].shortopt.c_str(),shortopt)==0) ) {
-      throw FS_except(EEXIST);
+      throw std::system_error(EEXIST, std::generic_category(), std::string("duplicate opt -").append(shortopt));
     } else if ( (longopt)&&(strcmp(cmds[iA].longopt.c_str(),longopt)==0) ) {
-      throw FS_except(EEXIST);
+      throw std::system_error(EEXIST, std::generic_category(), std::string("duplicate opt --").append(longopt));
     }
   }
 }
@@ -250,7 +249,7 @@ bool Cmdline::is_default(const char *opt) const
 {
   if ( (!opt)||(opt[0]!='-') ) {
     assert(false);
-    throw FS_except(EINVAL);
+    throw std::system_error(EINVAL, std::generic_category(), "unexpected");
   }
   if (opt[1]=='-') { // long
     for (int iA=0;iA<(int)cmds.size();iA++) {
@@ -266,7 +265,7 @@ bool Cmdline::is_default(const char *opt) const
     }
   }
   // ERROR(Unknown option)
-  throw FS_except(EINVAL);
+  throw std::system_error(EINVAL, std::generic_category(), std::string("unknown option -").append(opt));
 }
 
 void Cmdline::set(const char *opt,const char *addstr)
@@ -274,7 +273,7 @@ void Cmdline::set(const char *opt,const char *addstr)
   char const *const argv[3]={NULL,opt,addstr};
   if (!do_parse(((addstr)?2:1)+1,argv)) {
     // ERROR(Bad option specification)
-    throw FS_except(EINVAL);
+    throw std::system_error(EINVAL, std::generic_category(), std::string("bad option specification for: ").append(opt));
   }
 }
 
