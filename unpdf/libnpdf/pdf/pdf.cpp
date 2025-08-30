@@ -211,8 +211,8 @@ fprintf(stderr,"%d %d\n",in.pos(),ohdr[subobj].second);
 #endif
     ParsingInput psi(in);
 
-    std::auto_ptr<Decrypt> str_decrypt(getStrDecrypt(ref));
-    std::auto_ptr<Object> ret(Parser::parse(psi,str_decrypt.get()));
+    // NOTE: strings in object stream are not encrypted again
+    std::auto_ptr<Object> ret(Parser::parse(psi));
     if (!ret.get()) { // no more input
       throw UsrError("Could not find complete object here");
     }
