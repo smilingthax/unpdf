@@ -32,9 +32,9 @@ namespace PDFTools {
     // returns len; but /Length has to already be set [e.g. as Ref]
     int outStream(const Dict &dict,Input &readfrom,Encrypt *encrypt,OFilter *filter,const Ref &ref);
 
-  //private: 
+  //private:
     FILEOutput &write_base;
-  //private: 
+  //private:
     int version;
     XRef xref;
     Dict trdict;
@@ -54,4 +54,4 @@ namespace PDFTools {
 
 } // namespace PDFTools
 
-#endif        
+#endif

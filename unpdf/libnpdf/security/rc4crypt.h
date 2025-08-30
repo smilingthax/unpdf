@@ -8,7 +8,7 @@ namespace PDFTools {
   class StandardRC4Crypt : public Decrypt,public Encrypt { // fully symmetric
   public:
     StandardRC4Crypt(const std::string &objkey);
-    
+
     void operator()(std::string &dst,const std::string &src) const;
     Input *getInput(Input &read_from) const;
     Output *getOutput(Output &write_to) const;

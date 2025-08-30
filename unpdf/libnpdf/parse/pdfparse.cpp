@@ -64,7 +64,7 @@ Object *Parser::parse(ParsingInput &in,const Decrypt *str_decrypt) // {{{
     return new Boolean(false);
   } else if (in.next("null")) {
     return new Object(); // null-object
-  } 
+  }
   throw UsrError("Unknown entity: \"%.2s\"",buf);
 }
 // }}}

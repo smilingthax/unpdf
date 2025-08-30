@@ -11,14 +11,14 @@ namespace PDFTools {
     Ref(const Ref &r) : ref(r.ref),gen(r.gen) {}
 
     void print(Output &out) const;
-    Ref *clone() const { 
+    Ref *clone() const {
       return new Ref(ref,gen);
     }
 
-    bool operator==(const Ref &r) const { 
+    bool operator==(const Ref &r) const {
       return ( (r.ref==ref)&&(r.gen==gen) );
     }
-    bool operator!=(const Ref &r) const { 
+    bool operator!=(const Ref &r) const {
       return ( (r.ref!=ref)||(r.gen!=gen) );
     }
     bool operator<(const Ref &r) const {

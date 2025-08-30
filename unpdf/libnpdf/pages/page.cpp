@@ -169,7 +169,7 @@ void Page::copy_from(OutPDF &outpdf,PDF &srcpdf,const Page &page,std::map<Ref,Re
   // we need to kill /Beads  (i.e. root/Catalog:  /Threads);
   pdict.erase("B"); // can't sensibly handle Beads -- but they potentially pull in "everything"
   pdict.erase("StructParents"); // no /StructTreeRoot in /Catalog there any more
-  
+
   outpdf.remap_dict(srcpdf,pdict,donemap);
 
   mediabox=page.mediabox;

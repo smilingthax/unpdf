@@ -12,7 +12,7 @@ namespace PDFTools {
     Rect();
     Rect(float x1,float x2,float y1,float y2);
 //    Rect(const Point &p1,const Point &p2);
-//    Rect(const Point &p); // (0,0)-p 
+//    Rect(const Point &p); // (0,0)-p
     Rect(PDF &pdf,const Array &ary);
 
     float operator[](int pos) const;
@@ -22,7 +22,7 @@ namespace PDFTools {
   protected:
     float &operator[](int pos);
   private:
-    float x1,y1,x2,y2; 
+    float x1,y1,x2,y2;
   };
 
 } // namespace PDFTools
